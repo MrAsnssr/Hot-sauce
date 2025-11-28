@@ -10,4 +10,6 @@ services:
         value: 10000
       - key: NODE_ENV
         value: production
+      - key: FRONTEND_URL
+        value: https://hot-sauce-1.onrender.com
 

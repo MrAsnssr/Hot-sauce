@@ -2,6 +2,9 @@ static:
   name: hot-sauce-frontend
   buildCommand: npm install && npm run build
   publishDirectory: dist
+  envVars:
+    - key: VITE_API_URL
+      value: https://arabic-trivia-backend.onrender.com/api
   headers:
     - path: /*
       name: X-Content-Type-Options
