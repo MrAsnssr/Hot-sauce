@@ -1,9 +1,19 @@
 import { Server, Socket } from 'socket.io';
 import Game from '../models/Game.js';
+import Question from '../models/Question.js';
+import mongoose from 'mongoose';
 
 interface GameRoom {
   gameId: string;
   sockets: Set<string>;
+  currentPhase?: 'pick_subject' | 'pick_type' | 'question' | 'results';
+  subjectPickerTeamId?: string;
+  selectedSubjectId?: string;
+  selectedTypeId?: string;
+  votes?: Record<string, Record<string, string>>; // {teamId: {playerId: optionId}}
+  lockedAnswers?: Record<string, { optionId: string; timestamp: number }>; // {teamId: {optionId, timestamp}}
+  currentQuestion?: any;
+  teams?: any[];
 }
 
 const gameRooms = new Map<string, GameRoom>();
@@ -61,6 +71,24 @@ export const setupGameSocket = (io: Server) => {
           playerName,
           isHost 
         });
+        
+        // If game is already active/configured, send state to the joiner
+        if (gameRooms.has(gameId)) {
+          const room = gameRooms.get(gameId)!;
+          // Send teams if available (implies game started or configured)
+          if (room.teams && room.teams.length > 0) {
+             socket.emit('game-started', { teams: room.teams });
+          }
+          // Send current phase
+          if (room.currentPhase) {
+             socket.emit('game-phase-changed', { phase: room.currentPhase });
+          }
+          // Send current question
+          if (room.currentQuestion) {
+             socket.emit('question-loaded', { question: room.currentQuestion });
+          }
+        }
+
         console.log(`🔵 [BACKEND] Emitted player-joined to room ${gameId}`);
         
         // If player (not host), wait longer before requesting config to let host add them first
@@ -77,6 +105,17 @@ export const setupGameSocket = (io: Server) => {
     socket.on('update-game-config', (config: any) => {
       const gameId = (socket as any).gameId;
       if (gameId) {
+        const room = gameRooms.get(gameId);
+        if (room) {
+          // Store teams in room for game logic
+          if (config.teams) {
+            room.teams = config.teams;
+            // Initialize subject picker to first team
+            if (!room.subjectPickerTeamId && config.teams.length > 0) {
+              room.subjectPickerTeamId = config.teams[0].id;
+            }
+          }
+        }
         console.log(`🔵 [BACKEND] Broadcasting game config to room ${gameId}`);
         console.log(`🔵 [BACKEND] Config players count:`, config.players?.length || 0);
         // Broadcast to all players in room (including sender for testing, but host shouldn't need it)
@@ -106,6 +145,244 @@ export const setupGameSocket = (io: Server) => {
         if (room.sockets.size === 0) {
           gameRooms.delete(gameId);
         }
+      }
+    });
+
+    // ============ NEW GAME FLOW EVENTS ============
+    
+    // Start game - initialize teams
+    socket.on('start-game', (data: { gameId: string; teams: any[] }) => {
+      const { gameId, teams } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.teams = teams.map((t: any) => ({ ...t, score: 0 }));
+        room.subjectPickerTeamId = teams[0]?.id;
+        room.currentPhase = 'pick_subject';
+        console.log(`🔵 [BACKEND] Game started for room ${gameId} with ${teams.length} teams`);
+        io.to(gameId).emit('game-started', { teams: room.teams });
+      }
+    });
+    
+    // Game phase changed
+    socket.on('game-phase-changed', (data: { gameId: string; phase: string }) => {
+      const { gameId, phase } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.currentPhase = phase as any;
+        io.to(gameId).emit('game-phase-changed', { phase });
+      }
+    });
+
+    // Select subject
+    socket.on('select-subject', (data: { gameId: string; subjectId: string }) => {
+      const { gameId, subjectId } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.selectedSubjectId = subjectId;
+        console.log(`🔵 [BACKEND] Subject selected: ${subjectId} for room ${gameId}`);
+        io.to(gameId).emit('subject-selected', { subjectId });
+      }
+    });
+
+    // Select question type
+    socket.on('select-type', (data: { gameId: string; typeId: string }) => {
+      const { gameId, typeId } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.selectedTypeId = typeId;
+        console.log(`🔵 [BACKEND] Type selected: ${typeId} for room ${gameId}`);
+        io.to(gameId).emit('type-selected', { typeId });
+      }
+    });
+
+    // Load question
+    socket.on('load-question', async (data: { gameId: string; subjectId: string; typeId: string }) => {
+      const { gameId, subjectId, typeId } = data;
+      const room = gameRooms.get(gameId);
+      if (!room) return;
+
+      try {
+        const filter: any = {};
+        
+        // Handle subjectId
+        if (mongoose.Types.ObjectId.isValid(subjectId)) {
+          filter.subjectId = new mongoose.Types.ObjectId(subjectId);
+        } else {
+          const subject = await mongoose.model('Subject').findOne({ 
+            $or: [{ name: subjectId }, { nameAr: subjectId }, { _id: subjectId }]
+          });
+          if (subject) {
+            filter.subjectId = subject._id;
+          }
+        }
+        
+        // Handle questionTypeId
+        if (mongoose.Types.ObjectId.isValid(typeId)) {
+          filter.questionTypeId = new mongoose.Types.ObjectId(typeId);
+        } else {
+          filter.questionTypeId = typeId;
+        }
+
+        let questions = await Question.find(filter);
+        
+        // Fallback if no questions found
+        if (questions.length === 0) {
+          if (filter.subjectId) {
+            questions = await Question.find({ subjectId: filter.subjectId });
+          }
+          if (questions.length === 0) {
+            questions = await Question.find({ questionTypeId: typeId });
+          }
+        }
+
+        if (questions.length === 0) {
+          socket.emit('error', { message: 'No questions found' });
+          return;
+        }
+
+        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        await randomQuestion.populate('subjectId');
+        
+        const questionObj = randomQuestion.toObject();
+        questionObj.id = questionObj._id.toString();
+        
+        room.currentQuestion = questionObj;
+        room.votes = {};
+        room.lockedAnswers = {};
+        
+        console.log(`🔵 [BACKEND] Question loaded for room ${gameId}`);
+        io.to(gameId).emit('question-loaded', { question: questionObj });
+      } catch (error: any) {
+        console.error('Error loading question:', error);
+        socket.emit('error', { message: error.message });
+      }
+    });
+
+    // Player vote
+    socket.on('player-vote', (data: { gameId: string; teamId: string; playerId: string; optionId: string }) => {
+      const { gameId, teamId, playerId, optionId } = data;
+      const room = gameRooms.get(gameId);
+      if (!room || !room.votes) return;
+
+      if (!room.votes[teamId]) {
+        room.votes[teamId] = {};
+      }
+      
+      room.votes[teamId][playerId] = optionId;
+      
+      // Broadcast vote update to team members
+      io.to(gameId).emit('vote-updated', { teamId, votes: room.votes[teamId] });
+      
+      // Check if majority reached
+      const teamVotes = room.votes[teamId];
+      const voteCounts: Record<string, number> = {};
+      Object.values(teamVotes).forEach(optId => {
+        voteCounts[optId] = (voteCounts[optId] || 0) + 1;
+      });
+      
+      const totalVotes = Object.keys(teamVotes).length;
+      if (totalVotes === 0) return; // No votes yet
+      
+      const voteValues = Object.values(voteCounts);
+      if (voteValues.length === 0) return; // No vote counts
+      
+      const maxVotes = Math.max(...voteValues);
+      const majority = Math.ceil(totalVotes / 2);
+      
+      // If majority reached and answer not locked yet
+      if (maxVotes >= majority && !room.lockedAnswers?.[teamId]) {
+        const winners = Object.keys(voteCounts).filter(opt => voteCounts[opt] === maxVotes);
+        let winningOption = winners[0];
+        
+        // First player breaks tie
+        if (winners.length > 1) {
+          const firstVote = Object.entries(teamVotes).find(([pid, optId]) => winners.includes(optId as string));
+          winningOption = firstVote ? (firstVote[1] as string) : winners[0];
+        }
+        
+        const timestamp = Date.now();
+        if (!room.lockedAnswers) room.lockedAnswers = {};
+        room.lockedAnswers[teamId] = { optionId: winningOption, timestamp };
+        
+        console.log(`🔵 [BACKEND] Team ${teamId} locked answer: ${winningOption}`);
+        io.to(gameId).emit('team-answer-locked', { teamId, optionId: winningOption, timestamp });
+      }
+    });
+
+    // Reveal results
+    socket.on('reveal-results', (data: { gameId: string }) => {
+      const { gameId } = data;
+      const room = gameRooms.get(gameId);
+      if (!room || !room.currentQuestion || !room.lockedAnswers) return;
+
+      const correctOptionId = room.currentQuestion.options?.find((o: any) => o.isCorrect)?.id;
+      const scores: Record<string, number> = {};
+      const teamAnswers: Record<string, { optionId: string; timestamp: number }> = {};
+      
+      // Initialize scores
+      if (room.teams) {
+        room.teams.forEach((team: any) => {
+          scores[team.id] = team.score || 0;
+          if (room.lockedAnswers?.[team.id]) {
+            teamAnswers[team.id] = room.lockedAnswers[team.id];
+          }
+        });
+      }
+
+      // Calculate scores
+      const correctTeams: Array<{ teamId: string; timestamp: number }> = [];
+      
+      Object.entries(room.lockedAnswers || {}).forEach(([teamId, answer]) => {
+        if (answer.optionId === correctOptionId) {
+          correctTeams.push({ teamId, timestamp: answer.timestamp });
+          scores[teamId] = (scores[teamId] || 0) + (room.currentQuestion?.points || 10);
+        }
+      });
+
+      // Award speed bonus to fastest correct team
+      if (correctTeams.length > 1) {
+        correctTeams.sort((a, b) => a.timestamp - b.timestamp);
+        const fastestTeam = correctTeams[0].teamId;
+        scores[fastestTeam] = (scores[fastestTeam] || 0) + 5;
+      } else if (correctTeams.length === 1) {
+        // Single correct team gets base points only (already added above)
+      }
+
+      // Update room teams scores
+      if (room.teams) {
+        room.teams.forEach((team: any) => {
+          team.score = scores[team.id] || team.score || 0;
+        });
+      }
+
+      console.log(`🔵 [BACKEND] Results revealed for room ${gameId}`);
+      io.to(gameId).emit('results-revealed', { teamAnswers, scores });
+    });
+
+    // Round ended
+    socket.on('round-ended', (data: { gameId: string }) => {
+      const { gameId } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.currentPhase = 'pick_subject';
+        room.selectedSubjectId = undefined;
+        room.selectedTypeId = undefined;
+        room.currentQuestion = undefined;
+        room.votes = {};
+        room.lockedAnswers = {};
+        
+        // Alternate subject picker
+        if (room.teams && room.teams.length > 0) {
+          const currentIndex = room.teams.findIndex((t: any) => t.id === room.subjectPickerTeamId);
+          const nextIndex = (currentIndex + 1) % room.teams.length;
+          room.subjectPickerTeamId = room.teams[nextIndex].id;
+        }
+        
+        console.log(`🔵 [BACKEND] Round ended for room ${gameId}, next picker: ${room.subjectPickerTeamId}`);
+        io.to(gameId).emit('round-ended', { 
+          subjectPickerTeamId: room.subjectPickerTeamId,
+          teams: room.teams,
+        });
       }
     });
 

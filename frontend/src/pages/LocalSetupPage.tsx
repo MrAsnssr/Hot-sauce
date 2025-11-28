@@ -37,7 +37,7 @@ const LocalSetupPage: React.FC = () => {
 
   const assignToTeam = (playerId: string, teamId: string) => {
     setPlayers(players.map(p => 
-      p.id === playerId ? { ...p, teamId } : p
+      p.id === playerId ? { ...p, teamId: teamId || null } : p
     ));
   };
 
@@ -152,7 +152,9 @@ const LocalSetupPage: React.FC = () => {
                           {player.name}
                           <button
                             onClick={() => assignToTeam(player.id, '')}
+                            onMouseDown={(e) => e.preventDefault()}
                             className="text-white/60 hover:text-white"
+                            title="إزالة من الفريق"
                           >
                             ✕
                           </button>

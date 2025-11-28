@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
 
 // ============ TYPES ============
@@ -30,6 +31,12 @@ interface Subject {
   nameAr: string;
 }
 
+interface QuestionType {
+  id: string;
+  nameAr: string;
+  description: string;
+}
+
 // ============ COMPONENT ============
 const LocalGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +48,10 @@ const LocalGamePage: React.FC = () => {
   const [pickingTeamIndex, setPickingTeamIndex] = useState(0);
 
   // Current round state
-  const [phase, setPhase] = useState<'pick_subject' | 'answering' | 'results'>('pick_subject');
+  const [phase, setPhase] = useState<'pick_subject' | 'pick_type' | 'answering' | 'results'>('pick_subject');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [teamAnswers, setTeamAnswers] = useState<Record<string, string>>({});
   const [timer, setTimer] = useState(30);
@@ -57,6 +67,7 @@ const LocalGamePage: React.FC = () => {
     try {
       const parsed = JSON.parse(data);
       setTeams(parsed.teams || []);
+      setQuestionTypes(HARDCODED_QUESTION_TYPES);
       loadSubjects();
     } catch {
       navigate('/');
@@ -78,30 +89,53 @@ const LocalGamePage: React.FC = () => {
     }
   };
 
+  const showResults = useCallback(() => {
+    setPhase('results');
+  }, []);
+
   // ============ TIMER ============
   useEffect(() => {
     if (phase !== 'answering' || timer <= 0) return;
-    const interval = setInterval(() => {
+    
+    let intervalId: ReturnType<typeof setInterval>;
+    let mounted = true;
+    
+    intervalId = setInterval(() => {
+      if (!mounted) return;
+      
       setTimer(t => {
         if (t <= 1) {
-          clearInterval(interval);
-          showResults();
+          if (mounted) {
+            showResults();
+          }
           return 0;
         }
         return t - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
-  }, [phase, timer]);
+    
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [phase, showResults]);
 
   // ============ GAME LOGIC ============
   const pickingTeam = teams[pickingTeamIndex];
   const opposingTeam = teams[(pickingTeamIndex + 1) % teams.length];
 
-  const selectSubject = async (subjectId: string) => {
+  const selectSubject = (subjectId: string) => {
+    setSelectedSubject(subjectId);
+    setPhase('pick_type');
+  };
+
+  const selectType = async (typeId: string) => {
+    if (!selectedSubject) return;
+    
+    setSelectedType(typeId);
     setLoading(true);
     try {
-      const res = await api.post('/games/temp/question', { subjectId });
+      const res = await api.post('/games/temp/question', { subjectId: selectedSubject, questionTypeId: typeId });
       const q = res.data;
       
       // Build options
@@ -160,24 +194,22 @@ const LocalGamePage: React.FC = () => {
   };
 
   const answerQuestion = (teamId: string, optionId: string) => {
-    if (teamAnswers[teamId]) return; // Already answered
+    if (teamAnswers[teamId] || phase !== 'answering') return; // Already answered or wrong phase
     setTeamAnswers(prev => ({ ...prev, [teamId]: optionId }));
-  };
-
-  const showResults = () => {
-    setPhase('results');
   };
 
   const nextRound = () => {
     if (!currentQuestion) return;
 
-    // Calculate scores
-    const correctId = currentQuestion.options.find(o => o.isCorrect)?.id;
-    setTeams(prev => prev.map(team => {
-      const answered = teamAnswers[team.id];
-      const correct = answered === correctId;
-      return { ...team, score: team.score + (correct ? currentQuestion.points : 0) };
-    }));
+    // Calculate scores - both teams can get points if correct
+    const correctId = currentQuestion.options?.find(o => o.isCorrect)?.id;
+    if (correctId) {
+      setTeams(prev => prev.map(team => {
+        const answered = teamAnswers[team.id];
+        const correct = answered === correctId;
+        return { ...team, score: team.score + (correct ? currentQuestion.points : 0) };
+      }));
+    }
 
     // Next round
     const nextPicker = (pickingTeamIndex + 1) % teams.length;
@@ -186,10 +218,12 @@ const LocalGamePage: React.FC = () => {
     
     setCurrentQuestion(null);
     setTeamAnswers({});
+    setSelectedSubject(null);
+    setSelectedType(null);
     setPhase('pick_subject');
   };
 
-  const allAnswered = teams.every(t => teamAnswers[t.id]);
+  const allAnswered = teams.length > 0 && teams.every(t => teamAnswers[t.id]);
 
   // ============ HELPERS ============
   const shuffleArray = <T,>(arr: T[]): T[] => {
@@ -262,17 +296,46 @@ const LocalGamePage: React.FC = () => {
                   </span>
                 </div>
                 
+                <div className="flex flex-wrap justify-center gap-4">
+                  {subjects.map(subject => (
+                    <button
+                      key={subject.id}
+                      onClick={() => selectSubject(subject.id)}
+                      className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105"
+                    >
+                      {subject.nameAr}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* PICK TYPE */}
+            {phase === 'pick_type' && (
+              <>
+                <div className="text-center mb-6">
+                  <span className="text-white text-xl">
+                    <strong style={{ color: opposingTeam?.color }}>{opposingTeam?.name}</strong> يختار نوع السؤال
+                  </span>
+                  {selectedSubject && (
+                    <p className="text-white/60 text-sm mt-2">
+                      الموضوع: {subjects.find(s => s.id === selectedSubject)?.nameAr}
+                    </p>
+                  )}
+                </div>
+                
                 {loading ? (
                   <p className="text-center text-white">جاري التحميل...</p>
                 ) : (
                   <div className="flex flex-wrap justify-center gap-4">
-                    {subjects.map(subject => (
+                    {questionTypes.map(type => (
                       <button
-                        key={subject.id}
-                        onClick={() => selectSubject(subject.id)}
-                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105"
+                        key={type.id}
+                        onClick={() => selectType(type.id)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105 min-w-[160px]"
                       >
-                        {subject.nameAr}
+                        <div>{type.nameAr}</div>
+                        <div className="text-sm text-white/70">{type.description}</div>
                       </button>
                     ))}
                   </div>

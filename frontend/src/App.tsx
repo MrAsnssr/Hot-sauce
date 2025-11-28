@@ -23,10 +23,11 @@ function App() {
         
         {/* Online Game */}
         <Route path="/online/create" element={<OnlineCreatePage />} />
+        <Route path="/online/lobby/:roomCode" element={<OnlineCreatePage />} />
         <Route path="/online/join" element={<OnlineJoinPage />} />
         <Route path="/online/join/:roomCode" element={<OnlineJoinPage />} />
         <Route path="/online/waiting" element={<OnlineWaitingPage />} />
-        <Route path="/online/game" element={<OnlineGamePage />} />
+        <Route path="/online/game/:roomCode" element={<OnlineGamePage />} />
         
         {/* Admin */}
         <Route path="/admin" element={<AdminPage />} />

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
+import { io, Socket } from 'socket.io-client';
 
 // ============ TYPES ============
 interface Team {
@@ -9,6 +11,7 @@ interface Team {
   name: string;
   color: string;
   score: number;
+  players: string[];
 }
 
 interface QuestionOption {
@@ -25,87 +28,168 @@ interface Question {
   timeLimit: number;
 }
 
+interface Subject {
+  id: string;
+  nameAr: string;
+}
+
+type GamePhase = 'pick_subject' | 'pick_type' | 'question' | 'results';
+
 // ============ COMPONENT ============
 const OnlineGamePage: React.FC = () => {
   const navigate = useNavigate();
+  const { roomCode: urlRoomCode } = useParams<{ roomCode: string }>();
 
   // Game data
   const [roomCode, setRoomCode] = useState('');
   const [isHost, setIsHost] = useState(false);
+  const [playerId, setPlayerId] = useState('');
+  const [playerTeamId, setPlayerTeamId] = useState<string | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [round, setRound] = useState(1);
-  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
+  const [subjectPickerIndex, setSubjectPickerIndex] = useState(0);
 
-  // Question state
-  const [phase, setPhase] = useState<'loading' | 'question' | 'results'>('loading');
+  // Current round state
+  const [phase, setPhase] = useState<GamePhase>('pick_subject');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  
+  // Voting state
+  const [playerVotes, setPlayerVotes] = useState<Record<string, string>>({}); // {playerId: optionId}
+  const [teamAnswers, setTeamAnswers] = useState<Record<string, { optionId: string; timestamp: number }>>({});
   const [timer, setTimer] = useState(30);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   // ============ INIT ============
   useEffect(() => {
-    const gameData = sessionStorage.getItem('onlineGame');
-    const host = sessionStorage.getItem('isHost') === 'true';
-    const code = sessionStorage.getItem('roomCode') || '';
-
+    // 1. Resolve Room Code
+    const code = urlRoomCode?.toUpperCase() || sessionStorage.getItem('roomCode') || '';
+    
     if (!code) {
       navigate('/');
       return;
     }
-
     setRoomCode(code);
-    setIsHost(host);
 
+    // 2. Resolve Player Info
+    const host = sessionStorage.getItem('isHost') === 'true';
+    setIsHost(host);
+    const pId = sessionStorage.getItem('playerName') || `player-${Date.now()}`;
+    setPlayerId(pId);
+
+    // 3. Load Initial Game Data (if available locally, will be overwritten by socket)
+    const gameData = sessionStorage.getItem('onlineGame');
     if (gameData) {
       try {
         const parsed = JSON.parse(gameData);
-        setTeams(parsed.teams || []);
-      } catch {
-        // Use default teams
-        setTeams([
-          { id: 'team-1', name: 'الفريق الأزرق', color: '#3b82f6', score: 0 },
-          { id: 'team-2', name: 'الفريق الأحمر', color: '#ef4444', score: 0 },
-        ]);
+        // Only use session data if it matches current room
+        if (parsed.roomCode === code) {
+          if (parsed.teams) {
+             setTeams(parsed.teams.map((t: any) => ({ ...t, score: 0 })));
+             
+             // Find player team
+             const playerTeam = parsed.teams.find((t: any) => 
+               t.players?.some((p: any) => p.name === pId || p.id === pId)
+             );
+             if (playerTeam) {
+               setPlayerTeamId(playerTeam.id);
+             }
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing local game data', e);
       }
-    } else {
-      // Player joined - create default teams
-      setTeams([
-        { id: 'team-1', name: 'الفريق الأزرق', color: '#3b82f6', score: 0 },
-        { id: 'team-2', name: 'الفريق الأحمر', color: '#ef4444', score: 0 },
-      ]);
     }
 
-    // Load first question
-    loadQuestion();
-  }, [navigate]);
+    loadSubjects();
+    const newSocket = setupSocket(code, pId, host);
 
-  // ============ TIMER ============
-  useEffect(() => {
-    if (phase !== 'question' || timer <= 0) return;
-    const interval = setInterval(() => {
-      setTimer(t => {
-        if (t <= 1) {
-          clearInterval(interval);
-          showResults();
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [phase, timer]);
+    return () => {
+      if (newSocket && newSocket.connected) {
+        newSocket.disconnect();
+      }
+    };
+  }, [navigate, urlRoomCode]);
 
-  // ============ GAME LOGIC ============
-  const currentTeam = teams[currentTeamIndex];
-
-  const loadQuestion = async () => {
-    setPhase('loading');
-    setSelectedAnswer(null);
-
+  const loadSubjects = async () => {
     try {
-      const res = await api.post('/games/temp/question', {});
-      const q = res.data;
+      const res = await api.get('/subjects');
+      const data = Array.isArray(res.data) ? res.data : (res.data?.subjects ? res.data.subjects : []);
+      setSubjects(data.map((s: any) => ({
+        id: s._id || s.id,
+        nameAr: s.nameAr || s.name,
+      })));
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      setSubjects([{ id: '1', nameAr: 'ثقافة عامة' }]);
+    }
+  };
 
+  const setupSocket = (code: string, pId: string, host: boolean) => {
+    const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
+                     (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
+    const newSocket = io(socketUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+    });
+
+    newSocket.on('connect', () => {
+      console.log('🔌 Connected to game socket');
+      newSocket.emit('join-game', {
+        gameId: code,
+        playerName: pId,
+        isHost: host,
+      });
+      
+      // If host, we might want to ensure the game is started or send config
+      // But typically this is handled in the lobby. 
+      // If refresh happens, the backend should hopefully have state.
+      // If backend has no state (server restart), we might need to re-send config from session.
+      if (host) {
+        const gameData = sessionStorage.getItem('onlineGame');
+        if (gameData) {
+           try {
+             const parsed = JSON.parse(gameData);
+             if (parsed.teams && parsed.roomCode === code) {
+               // Re-sync teams if backend lost them
+               newSocket.emit('update-game-config', { teams: parsed.teams });
+             }
+           } catch(e) {}
+        }
+      }
+    });
+
+    newSocket.on('game-started', (data: { teams: Team[] }) => {
+      // This might happen if late joiner or re-sync
+      if (data.teams) {
+        setTeams(data.teams);
+        // Recalculate my team
+        const playerTeam = data.teams.find((t: any) => 
+            t.players?.some((p: any) => p.name === pId || p.id === pId)
+        );
+        if (playerTeam) setPlayerTeamId(playerTeam.id);
+      }
+    });
+
+    // Handle receiving config update (e.g. from lobby or re-sync)
+    newSocket.on('game-config-updated', (config: any) => {
+      if (config.teams) {
+        setTeams(config.teams);
+        const playerTeam = config.teams.find((t: any) => 
+            t.players?.some((p: any) => p.name === pId || p.id === pId)
+        );
+        if (playerTeam) setPlayerTeamId(playerTeam.id);
+      }
+    });
+
+    newSocket.on('game-phase-changed', (data: { phase: GamePhase }) => {
+      setPhase(data.phase);
+    });
+
+    newSocket.on('question-loaded', (data: { question: any }) => {
+      const q = data.question;
       let options: QuestionOption[] = [];
       if (q.options?.length > 0) {
         options = q.options.map((o: any, i: number) => ({
@@ -122,8 +206,6 @@ const OnlineGamePage: React.FC = () => {
         ]);
       }
 
-      if (options.length === 0) throw new Error('No options');
-
       setCurrentQuestion({
         id: q._id || q.id || Date.now().toString(),
         text: q.text,
@@ -132,69 +214,188 @@ const OnlineGamePage: React.FC = () => {
         timeLimit: q.timeLimit || 30,
       });
       setTimer(q.timeLimit || 30);
+      setPlayerVotes({});
+      setTeamAnswers({});
       setPhase('question');
-    } catch {
-      // Fallback question
-      setCurrentQuestion({
-        id: 'fallback',
-        text: 'ما هي أكبر قارة في العالم؟',
-        options: shuffleArray([
-          { id: '1', text: 'آسيا', isCorrect: true },
-          { id: '2', text: 'أفريقيا', isCorrect: false },
-          { id: '3', text: 'أوروبا', isCorrect: false },
-          { id: '4', text: 'أمريكا الشمالية', isCorrect: false },
-        ]),
-        points: 10,
-        timeLimit: 30,
+    });
+
+    newSocket.on('vote-updated', (data: { teamId: string; votes: Record<string, string> }) => {
+      setPlayerVotes(prev => {
+        // Only update if it's relevant (my team, or if we want to show all votes?)
+        // Currently we only track my team's votes in local state for logic, 
+        // but let's just merge. Logic uses playerTeamId to filter display.
+        return { ...prev, ...data.votes };
       });
-      setTimer(30);
-      setPhase('question');
+    });
+
+    newSocket.on('team-answer-locked', (data: { teamId: string; optionId: string; timestamp: number }) => {
+      setTeamAnswers(prev => ({
+        ...prev,
+        [data.teamId]: { optionId: data.optionId, timestamp: data.timestamp },
+      }));
+    });
+
+    newSocket.on('results-revealed', (data: { 
+      teamAnswers: Record<string, { optionId: string; timestamp: number }>;
+      scores: Record<string, number>;
+    }) => {
+      setTeamAnswers(data.teamAnswers);
+      setTeams(prev => prev.map(t => ({
+        ...t,
+        score: data.scores[t.id] || t.score,
+      })));
+      setPhase('results');
+    });
+
+    newSocket.on('round-ended', (data: { subjectPickerTeamId?: string; teams?: Team[] }) => {
+      // Update teams if provided
+      if (data.teams) {
+        setTeams(data.teams);
+      }
+      
+      // Update subject picker index
+      if (data.subjectPickerTeamId) {
+        // Need to access current 'teams' state. 
+        // Since we are inside closure, better to use functional state update or rely on updated teams from payload
+        // Ideally data.teams is provided.
+        // For simplicity let's trust the backend sent teams or fallback to simple rotation
+        // But we don't have access to 'teams' state here easily without ref/dependency.
+        // Let's rely on data.teams if possible.
+      }
+      
+      // Simple client-side rotation fallback if data incomplete, 
+      // but ideally backend drives this.
+      setSubjectPickerIndex(prev => {
+         // This logic is slightly fragile without up-to-date teams. 
+         // Assuming teams count doesn't change:
+         const next = (prev + 1) % (data.teams?.length || 2); 
+         if (next === 0) setRound(r => r + 1);
+         return next;
+      });
+      
+      setSelectedSubject(null);
+      setSelectedType(null);
+      setCurrentQuestion(null);
+      setPlayerVotes({});
+      setTeamAnswers({});
+      setPhase('pick_subject');
+    });
+    
+    setSocket(newSocket);
+    return newSocket;
+  };
+
+  // ============ TIMER ============
+  useEffect(() => {
+    if (phase !== 'question' || timer <= 0) return;
+    
+    let intervalId: ReturnType<typeof setInterval>;
+    let mounted = true;
+    
+    intervalId = setInterval(() => {
+      if (!mounted) return;
+      
+      setTimer(t => {
+        if (t <= 1) {
+          if (mounted && socket && isHost) {
+            socket.emit('reveal-results', { gameId: roomCode });
+          }
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [phase, socket, isHost, roomCode]);
+
+  // ============ GAME LOGIC ============
+  const subjectPickerTeam = teams[subjectPickerIndex];
+  const typePickerTeam = teams[(subjectPickerIndex + 1) % teams.length];
+
+  const handleSelectSubject = (subjectId: string) => {
+    if (!isHost || phase !== 'pick_subject') return;
+    setSelectedSubject(subjectId);
+    if (socket) {
+      socket.emit('select-subject', { gameId: roomCode, subjectId });
+      socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
+    }
+    setPhase('pick_type');
+  };
+
+  const handleSelectType = (typeId: string) => {
+    if (!isHost || phase !== 'pick_type') return;
+    setSelectedType(typeId);
+    if (socket) {
+      socket.emit('select-type', { gameId: roomCode, typeId });
+      socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
     }
   };
 
-  const selectAnswer = (optionId: string) => {
-    if (selectedAnswer) return;
-    setSelectedAnswer(optionId);
+  const handleVote = (optionId: string) => {
+    if (!playerTeamId || phase !== 'question' || !socket) return;
+    
+    // Prevent duplicate votes
+    if (playerVotes[playerId] === optionId) return;
+    
+    socket.emit('player-vote', {
+      gameId: roomCode,
+      teamId: playerTeamId,
+      playerId: playerId,
+      optionId,
+    });
+    setPlayerVotes(prev => ({ ...prev, [playerId]: optionId }));
   };
 
-  const showResults = () => {
-    setPhase('results');
-  };
-
-  const nextRound = () => {
-    if (!currentQuestion) return;
-
-    // Calculate score
-    const correctId = currentQuestion.options.find(o => o.isCorrect)?.id;
-    const isCorrect = selectedAnswer === correctId;
-
-    if (isCorrect && currentTeam) {
-      setTeams(prev =>
-        prev.map(t =>
-          t.id === currentTeam.id
-            ? { ...t, score: t.score + currentQuestion.points }
-            : t
-        )
-      );
-    }
-
-    // Next round
-    const nextIndex = (currentTeamIndex + 1) % Math.max(teams.length, 1);
-    setCurrentTeamIndex(nextIndex);
-    if (nextIndex === 0) setRound(r => r + 1);
-
-    loadQuestion();
-  };
-
-  const endGame = () => {
-    if (confirm('هل أنت متأكد من إنهاء اللعبة؟')) {
-      sessionStorage.removeItem('onlineGame');
-      sessionStorage.removeItem('roomCode');
-      sessionStorage.removeItem('isHost');
-      sessionStorage.removeItem('playerName');
-      navigate('/');
+  const handleRevealResults = () => {
+    if (!isHost || phase !== 'question') return;
+    if (socket) {
+      socket.emit('reveal-results', { gameId: roomCode });
     }
   };
+
+  const handleNextRound = () => {
+    if (!isHost || phase !== 'results') return;
+    if (socket) {
+      socket.emit('round-ended', { gameId: roomCode });
+    }
+  };
+
+  // Calculate team's answer from votes
+  const getTeamAnswer = (teamId: string): string | null => {
+    if (teamAnswers[teamId]) {
+      return teamAnswers[teamId].optionId;
+    }
+    // Calculate from votes (majority, or first if tie)
+    if (!playerTeamId || teamId !== playerTeamId) return null;
+    
+    const voteCounts: Record<string, number> = {};
+    Object.values(playerVotes).forEach(optId => {
+      if (optId) {
+        voteCounts[optId] = (voteCounts[optId] || 0) + 1;
+      }
+    });
+    
+    const voteValues = Object.values(voteCounts);
+    if (voteValues.length === 0) return null;
+    
+    const maxVotes = Math.max(...voteValues);
+    const winners = Object.keys(voteCounts).filter(opt => voteCounts[opt] === maxVotes);
+    
+    // First player breaks tie
+    if (winners.length > 1) {
+      const firstVote = Object.entries(playerVotes).find(([pid, optId]) => optId && winners.includes(optId));
+      return firstVote ? firstVote[1] : winners[0];
+    }
+    
+    return winners[0] || null;
+  };
+
+  const myVote = playerVotes[playerId];
+  const myTeamAnswer = playerTeamId ? getTeamAnswer(playerTeamId) : null;
 
   // ============ HELPERS ============
   const shuffleArray = <T,>(arr: T[]): T[] => {
@@ -207,6 +408,16 @@ const OnlineGamePage: React.FC = () => {
   };
 
   // ============ RENDER ============
+  if (teams.length === 0) {
+    return (
+      <WoodyBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-white text-2xl">جاري التحميل...</p>
+        </div>
+      </WoodyBackground>
+    );
+  }
+
   return (
     <WoodyBackground>
       <div className="min-h-screen p-4">
@@ -214,13 +425,22 @@ const OnlineGamePage: React.FC = () => {
           
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <button onClick={endGame} className="text-white/60 hover:text-white">
+            <button
+              onClick={() => {
+                if (confirm('إنهاء اللعبة؟')) {
+                  sessionStorage.removeItem('onlineGame');
+                  sessionStorage.removeItem('roomCode');
+                  sessionStorage.removeItem('isHost');
+                  navigate('/');
+                }
+              }}
+              className="text-white/60 hover:text-white"
+            >
               ✕ خروج
             </button>
             <div className="text-white">
               <span className="text-yellow-400 font-bold">{roomCode}</span>
               <span className="text-white/60 mr-2"> | الجولة {round}</span>
-              {isHost && <span className="text-green-400 text-sm mr-2">(المضيف)</span>}
             </div>
             <div className="w-16" />
           </div>
@@ -231,7 +451,7 @@ const OnlineGamePage: React.FC = () => {
               <div
                 key={team.id}
                 className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
-                  i === currentTeamIndex ? 'ring-4 ring-yellow-400 scale-105' : ''
+                  i === subjectPickerIndex && phase === 'pick_subject' ? 'ring-4 ring-yellow-400 scale-105' : ''
                 }`}
                 style={{ backgroundColor: team.color }}
               >
@@ -241,25 +461,73 @@ const OnlineGamePage: React.FC = () => {
             ))}
           </div>
 
-          {/* Current Team */}
-          {currentTeam && (
-            <div
-              className="text-center mb-4 py-2 rounded-lg"
-              style={{ backgroundColor: `${currentTeam.color}60` }}
-            >
-              <span className="text-white">دور: <strong>{currentTeam.name}</strong></span>
-            </div>
-          )}
-
           {/* Main Content */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6">
             
-            {/* LOADING */}
-            {phase === 'loading' && (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">⏳</div>
-                <p className="text-white text-xl">جاري تحميل السؤال...</p>
-              </div>
+            {/* PICK SUBJECT */}
+            {phase === 'pick_subject' && (
+              <>
+                <div className="text-center mb-6">
+                  <span className="text-white text-xl">
+                    <strong style={{ color: subjectPickerTeam?.color }}>{subjectPickerTeam?.name}</strong> يختار الموضوع
+                  </span>
+                </div>
+                
+                {isHost ? (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {subjects.map(subject => (
+                      <button
+                        key={subject.id}
+                        onClick={() => handleSelectSubject(subject.id)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105"
+                      >
+                        {subject.nameAr}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <p className="text-white text-xl">في انتظار {subjectPickerTeam?.name} لاختيار الموضوع...</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* PICK TYPE */}
+            {phase === 'pick_type' && (
+              <>
+                <div className="text-center mb-6">
+                  <span className="text-white text-xl">
+                    <strong style={{ color: typePickerTeam?.color }}>{typePickerTeam?.name}</strong> يختار نوع السؤال
+                  </span>
+                  {selectedSubject && (
+                    <p className="text-white/60 text-sm mt-2">
+                      الموضوع: {subjects.find(s => s.id === selectedSubject)?.nameAr}
+                    </p>
+                  )}
+                </div>
+                
+                {isHost ? (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {HARDCODED_QUESTION_TYPES.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => handleSelectType(type.id)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105 min-w-[160px]"
+                      >
+                        <div>{type.nameAr}</div>
+                        <div className="text-sm text-white/70">{type.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <p className="text-white text-xl">في انتظار {typePickerTeam?.name} لاختيار نوع السؤال...</p>
+                  </div>
+                )}
+              </>
             )}
 
             {/* QUESTION */}
@@ -272,38 +540,56 @@ const OnlineGamePage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Question Text */}
+                {/* Question */}
                 <h2 className="text-2xl font-bold text-white text-center mb-8">
                   {currentQuestion.text}
                 </h2>
 
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {currentQuestion.options.map(opt => {
-                    const selected = selectedAnswer === opt.id;
-                    const answered = !!selectedAnswer;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => selectAnswer(opt.id)}
-                        disabled={answered}
-                        className={`p-4 rounded-xl text-white text-lg transition-all ${
-                          selected ? 'bg-blue-600 ring-4 ring-blue-400' :
-                          answered ? 'bg-white/10 opacity-50 cursor-not-allowed' :
-                          'bg-white/20 hover:bg-white/30'
-                        }`}
-                      >
-                        {opt.text}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Voting (only show if player is on a team) */}
+                {playerTeamId && (
+                  <div className="mb-6">
+                    <div
+                      className="text-center py-2 rounded-lg mb-3"
+                      style={{ backgroundColor: `${teams.find(t => t.id === playerTeamId)?.color}60` }}
+                    >
+                      <span className="text-white font-bold">فريقك: {teams.find(t => t.id === playerTeamId)?.name}</span>
+                      {myTeamAnswer && <span className="text-green-300 mr-2"> ✓ تم الإغلاق</span>}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentQuestion.options.map(opt => {
+                        const selected = myVote === opt.id;
+                        const locked = !!myTeamAnswer;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => handleVote(opt.id)}
+                            disabled={locked}
+                            className={`p-4 rounded-xl text-white text-lg transition-all ${
+                              selected ? 'bg-blue-600 ring-4 ring-blue-400' :
+                              locked ? 'bg-white/10 opacity-50 cursor-not-allowed' :
+                              'bg-white/20 hover:bg-white/30'
+                            }`}
+                          >
+                            {opt.text}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {myVote && !myTeamAnswer && (
+                      <p className="text-white/60 text-sm text-center mt-2">
+                        صوتك: {currentQuestion.options.find(o => o.id === myVote)?.text}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                {/* Show Results Button */}
-                {selectedAnswer && (
-                  <div className="text-center">
+                {/* Show Results Button (Host only) */}
+                {isHost && (
+                  <div className="text-center mt-4">
                     <button
-                      onClick={showResults}
+                      onClick={handleRevealResults}
                       className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl text-xl font-bold"
                     >
                       كشف الإجابة
@@ -320,49 +606,55 @@ const OnlineGamePage: React.FC = () => {
                   {currentQuestion.text}
                 </h2>
 
-                {/* Options with Results */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {currentQuestion.options.map(opt => {
-                    const isCorrect = opt.isCorrect;
-                    const wasSelected = selectedAnswer === opt.id;
-                    return (
-                      <div
-                        key={opt.id}
-                        className={`p-4 rounded-xl text-white text-lg text-center ${
-                          isCorrect ? 'bg-green-600' :
-                          wasSelected ? 'bg-red-600' :
-                          'bg-white/20'
-                        }`}
-                      >
-                        {opt.text}
-                        {isCorrect && ' ✓'}
+                {/* Correct Answer */}
+                <div className="bg-green-600/30 border-2 border-green-500 rounded-xl p-4 mb-6 text-center">
+                  <p className="text-green-400 text-sm">الإجابة الصحيحة:</p>
+                  <p className="text-white text-xl font-bold">
+                    {currentQuestion.options.find(o => o.isCorrect)?.text}
+                  </p>
+                </div>
+
+                {/* Team Results */}
+                {teams.map(team => {
+                  const answer = teamAnswers[team.id];
+                  const selected = answer ? currentQuestion.options?.find(o => o.id === answer.optionId) : null;
+                  const correct = selected?.isCorrect;
+                  const isFaster = answer && correct && Object.values(teamAnswers).some(a => 
+                    a && a.timestamp < answer.timestamp && 
+                    currentQuestion.options?.find(o => o.id === a.optionId)?.isCorrect
+                  );
+                  
+                  return (
+                    <div
+                      key={team.id}
+                      className={`mb-3 p-4 rounded-xl ${correct ? 'bg-green-600/30' : 'bg-red-600/30'}`}
+                    >
+                      <div className="flex justify-between">
+                        <span className="text-white font-bold">{team.name}</span>
+                        <span className={correct ? 'text-green-400' : 'text-red-400'}>
+                          {!answer ? 'لم يجب ❌' : 
+                           correct ? `صحيح ✓ +${currentQuestion.points}${isFaster ? ' (أسرع +5)' : ''}` : 
+                           'خطأ ❌'}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                      {answer && (
+                        <p className="text-white/60 text-sm">اختار: {selected?.text}</p>
+                      )}
+                    </div>
+                  );
+                })}
 
-                {/* Result Message */}
-                <div className="text-center mb-6">
-                  <div className="text-2xl">
-                    {selectedAnswer && currentQuestion.options.find(o => o.id === selectedAnswer)?.isCorrect ? (
-                      <span className="text-green-400">إجابة صحيحة! 🎉 +{currentQuestion.points}</span>
-                    ) : (
-                      <span className="text-red-400">
-                        {!selectedAnswer ? 'انتهى الوقت! ⏰' : 'إجابة خاطئة 😢'}
-                      </span>
-                    )}
+                {/* Next Round Button (Host only) */}
+                {isHost && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={handleNextRound}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-xl font-bold"
+                    >
+                      الجولة التالية ←
+                    </button>
                   </div>
-                </div>
-
-                {/* Next Button */}
-                <div className="text-center">
-                  <button
-                    onClick={nextRound}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-xl font-bold"
-                  >
-                    السؤال التالي ←
-                  </button>
-                </div>
+                )}
               </>
             )}
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { io, Socket } from 'socket.io-client';
 
 const OnlineJoinPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,13 +26,58 @@ const OnlineJoinPage: React.FC = () => {
     setError('');
 
     // Store player info
+    const code = roomCode.toUpperCase();
     sessionStorage.setItem('isHost', 'false');
-    sessionStorage.setItem('roomCode', roomCode.toUpperCase());
+    sessionStorage.setItem('roomCode', code);
     sessionStorage.setItem('playerName', playerName.trim());
+
+    // Connect to socket and join room
+    const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
+                     (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
     
-    // In a real app, we would verify the room exists via socket/API
-    // For now, just navigate to waiting page
-    navigate('/online/waiting');
+    const socket = io(socketUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+      timeout: 10000,
+    });
+
+    let connected = false;
+    const timeout = setTimeout(() => {
+      if (!connected) {
+        setError('انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.');
+        setJoining(false);
+        socket.disconnect();
+      }
+    }, 10000);
+
+    socket.on('connect', () => {
+      console.log('🔌 Player connected to socket');
+      connected = true;
+      clearTimeout(timeout);
+      socket.emit('join-game', {
+        gameId: code,
+        playerName: playerName.trim(),
+        isHost: false,
+      });
+      // Navigate to waiting page
+      navigate('/online/waiting');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err);
+      clearTimeout(timeout);
+      setError('فشل الاتصال بالخادم. يرجى المحاولة لاحقاً.');
+      setJoining(false);
+      socket.disconnect();
+    });
+
+    socket.on('error', (data: { message: string }) => {
+      console.error('❌ Game error:', data.message);
+      clearTimeout(timeout);
+      setError(data.message || 'حدث خطأ أثناء الانضمام');
+      setJoining(false);
+      socket.disconnect();
+    });
   };
 
   return (

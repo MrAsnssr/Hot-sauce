@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { io, Socket } from 'socket.io-client';
 
 const OnlineWaitingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -8,6 +9,8 @@ const OnlineWaitingPage: React.FC = () => {
   const [playerName] = useState(() => sessionStorage.getItem('playerName') || 'لاعب');
   const [roomCode] = useState(() => sessionStorage.getItem('roomCode') || '');
   const [dots, setDots] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!roomCode) {
@@ -20,19 +23,68 @@ const OnlineWaitingPage: React.FC = () => {
       setDots(d => d.length >= 3 ? '' : d + '.');
     }, 500);
 
-    // Check for game start (polling - in real app would use sockets)
-    const checkInterval = setInterval(() => {
-      const gameData = sessionStorage.getItem('onlineGame');
-      if (gameData) {
-        navigate('/online/game');
+    // Connect to socket
+    const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
+                     (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
+    
+    const socket = io(socketUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+      timeout: 10000,
+    });
+
+    let hasJoined = false;
+
+    socket.on('connect', () => {
+      console.log('🔌 Player connected to socket in waiting page');
+      setConnected(true);
+      setError('');
+      
+      // Only join once
+      if (!hasJoined) {
+        hasJoined = true;
+        socket.emit('join-game', {
+          gameId: roomCode.toUpperCase(),
+          playerName: playerName,
+          isHost: false,
+        });
       }
-    }, 1000);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err);
+      setConnected(false);
+      setError('فشل الاتصال بالخادم. يرجى التأكد من أن المضيف متصل.');
+    });
+
+    socket.on('game-started', () => {
+      console.log('🎮 Game started, navigating to game page');
+      clearInterval(dotsInterval);
+      socket.disconnect();
+      navigate(`/online/game/${roomCode}`);
+    });
+
+    socket.on('game-config-updated', () => {
+      // Game config updated, but still waiting for start
+      console.log('📋 Game config updated');
+    });
+
+    socket.on('game-action', (data: { action: string }) => {
+      if (data.action === 'start') {
+        console.log('🎮 Game start action received');
+        clearInterval(dotsInterval);
+        socket.disconnect();
+        navigate(`/online/game/${roomCode}`);
+      }
+    });
 
     return () => {
       clearInterval(dotsInterval);
-      clearInterval(checkInterval);
+      if (socket.connected) {
+        socket.disconnect();
+      }
     };
-  }, [roomCode, navigate]);
+  }, [roomCode, navigate, playerName]);
 
   const leaveRoom = () => {
     sessionStorage.removeItem('playerName');
@@ -66,6 +118,20 @@ const OnlineWaitingPage: React.FC = () => {
               سيبدأ المضيف اللعبة قريباً
             </p>
           </div>
+
+          {/* Connection Status */}
+          <div className={`rounded-xl p-4 mb-6 ${connected ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <p className={`text-sm ${connected ? 'text-green-300' : 'text-red-300'}`}>
+              {connected ? '✅ متصل بالخادم' : '❌ غير متصل'}
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500 rounded-xl p-4 mb-6">
+              <p className="text-red-300 text-sm">{error}</p>
+            </div>
+          )}
 
           {/* Tips */}
           <div className="bg-white/5 rounded-xl p-4 mb-6">
