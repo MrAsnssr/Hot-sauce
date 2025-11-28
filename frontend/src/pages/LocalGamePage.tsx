@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
-import { Timer } from '../components/Shared/Timer';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
-import { Subject, QuestionType, Question } from '../types/question.types';
-import { Power } from '../types/power.types';
-import { PowerRegistry } from '../types/power.registry';
-import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
 
+// ============ TYPES ============
 interface Player {
   id: string;
   name: string;
@@ -29,684 +25,516 @@ interface GameConfig {
   teams: Team[];
 }
 
+interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+interface GameQuestion {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+  correctAnswer?: string;
+  points: number;
+  timeLimit: number;
+}
+
+interface Subject {
+  id: string;
+  _id?: string;
+  name: string;
+  nameAr: string;
+}
+
+interface QuestionType {
+  id: string;
+  name: string;
+  nameAr: string;
+  description: string;
+}
+
 type GamePhase = 
-  | 'team_select_subject'
-  | 'opposing_team_select_type'
-  | 'subject_team_select_sauce'
-  | 'show_question'
-  | 'both_teams_answer'
-  | 'show_answer'
-  | 'round_result'
+  | 'select_subject'
+  | 'select_type'
+  | 'answering'
+  | 'results'
   | 'game_over';
 
+// ============ HARDCODED QUESTION TYPES ============
+const QUESTION_TYPES: QuestionType[] = [
+  { id: 'four-options', name: 'Multiple Choice', nameAr: 'اختيار من متعدد', description: '4 خيارات' },
+  { id: 'fill-blank', name: 'Fill Blank', nameAr: 'املأ الفراغ', description: 'أكمل الجملة' },
+];
+
+// ============ COMPONENT ============
 const LocalGamePage: React.FC = () => {
   const navigate = useNavigate();
-  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
+  
+  // Game state
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [round, setRound] = useState(1);
-  const [phase, setPhase] = useState<GamePhase>('team_select_subject');
+  const [phase, setPhase] = useState<GamePhase>('select_subject');
   
+  // Data
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([]);
-  
-  // Safe array getters to prevent .map() errors
-  const safeSubjects = Array.isArray(subjects) ? subjects : [];
-  const safeQuestionTypes = Array.isArray(questionTypes) ? questionTypes : [];
-  const safeTeams = Array.isArray(teams) ? teams : [];
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [teamAAnswer, setTeamAAnswer] = useState<string | null>(null);
-  const [teamBAnswer, setTeamBAnswer] = useState<string | null>(null);
-  const [timeUp, setTimeUp] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   
-  const [extraSauceEnabled, setExtraSauceEnabled] = useState(true);
-  const [currentSauce, setCurrentSauce] = useState<Power | null>(null);
-  const [subjectTeamId, setSubjectTeamId] = useState<string | null>(null);
+  // Answers
+  const [teamAnswers, setTeamAnswers] = useState<Record<string, string>>({});
+  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [timerActive, setTimerActive] = useState(false);
+  
+  // Loading states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // ============ INITIALIZATION ============
   useEffect(() => {
     const config = sessionStorage.getItem('gameConfig');
     if (!config) {
       navigate('/');
       return;
     }
-    const parsed = JSON.parse(config) as GameConfig;
-    parsed.teams = parsed.teams.map((t) => ({ ...t, score: 0 }));
-    setGameConfig(parsed);
-    setTeams(parsed.teams);
-    
-    // Fetch subjects and question types
-    fetchGameData();
-  }, [navigate]);
-
-  const fetchGameData = async () => {
-    // Question types are hardcoded
-    setQuestionTypes(HARDCODED_QUESTION_TYPES);
     
     try {
-      const subjectsRes = await api.get('/subjects');
-      // Map _id to id for consistency
-      const mappedSubjects = subjectsRes.data.map((s: any) => ({
-        ...s,
+      const parsed = JSON.parse(config) as GameConfig;
+      // Initialize teams with score 0
+      const teamsWithScore = parsed.teams.map(t => ({ ...t, score: 0 }));
+      setTeams(teamsWithScore);
+      loadSubjects();
+    } catch (e) {
+      console.error('Error parsing game config:', e);
+      navigate('/');
+    }
+  }, [navigate]);
+
+  const loadSubjects = async () => {
+    try {
+      const response = await api.get('/subjects');
+      const data = response.data;
+      // Map _id to id
+      const mapped = Array.isArray(data) ? data.map((s: any) => ({
         id: s._id || s.id,
-      }));
-      setSubjects(mappedSubjects);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-      // Use mock data if API fails
+        _id: s._id,
+        name: s.name,
+        nameAr: s.nameAr || s.name,
+      })) : [];
+      setSubjects(mapped);
+    } catch (e) {
+      console.error('Error loading subjects:', e);
+      // Fallback subjects
       setSubjects([
-        { id: '1', name: 'History', nameAr: 'التاريخ', createdAt: new Date(), updatedAt: new Date() },
-        { id: '2', name: 'Science', nameAr: 'العلوم', createdAt: new Date(), updatedAt: new Date() },
-        { id: '3', name: 'Sports', nameAr: 'الرياضة', createdAt: new Date(), updatedAt: new Date() },
-        { id: '4', name: 'Geography', nameAr: 'الجغرافيا', createdAt: new Date(), updatedAt: new Date() },
+        { id: 'fallback-1', name: 'General', nameAr: 'عام' },
       ]);
     }
   };
 
-  // Defensive checks for teams
-  const currentTeam = teams.length > 0 ? teams[currentTeamIndex] : null;
-  const opposingTeam = teams.length > 1 ? teams[(currentTeamIndex + 1) % teams.length] : null;
-  const teamA = teams.length > 0 ? teams[0] : null;
-  const teamB = teams.length > 1 ? teams[1] : null;
+  // ============ TIMER ============
+  useEffect(() => {
+    if (!timerActive || timeRemaining <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timerActive, timeRemaining]);
 
-  const handleSubjectSelect = (subject: Subject) => {
-    if (!currentTeam) return;
-    setSelectedSubject(subject);
-    setSubjectTeamId(currentTeam.id);
-    // Switch to opposing team to pick type
-    setPhase('opposing_team_select_type');
-  };
-
-  const handleTypeSelect = (type: QuestionType) => {
-    setSelectedType(type);
-    // Subject team (Team A) picks sauce
-    if (extraSauceEnabled) {
-      setPhase('subject_team_select_sauce');
-    } else {
-      loadQuestion();
+  // Auto-advance when time runs out
+  useEffect(() => {
+    if (timeRemaining === 0 && phase === 'answering') {
+      handleShowResults();
     }
+  }, [timeRemaining, phase]);
+
+  // ============ GAME LOGIC ============
+  const currentTeam = teams[currentTeamIndex] || null;
+  const opposingTeam = teams[(currentTeamIndex + 1) % Math.max(teams.length, 1)] || null;
+
+  const handleSelectSubject = (subject: Subject) => {
+    setSelectedSubject(subject);
+    setPhase('select_type');
   };
 
-  const handleSauceSelect = (sauce: Power | null) => {
-    setCurrentSauce(sauce);
-    loadQuestion();
-  };
-
-  const loadQuestion = async () => {
+  const handleSelectType = async (type: QuestionType) => {
+    setSelectedType(type);
+    setLoading(true);
+    setError(null);
+    
     try {
-      // Try to get from API
       const response = await api.post('/games/temp/question', {
         subjectId: selectedSubject?.id || selectedSubject?._id,
-        questionTypeId: selectedType?.id,
+        questionTypeId: type.id,
       });
       
-      // Ensure the question has the correct structure
-      const question = response.data;
-      let formattedQuestion = { ...question };
+      const q = response.data;
       
-      // Convert _id to id for consistency
-      if (!question.id && question._id) {
-        formattedQuestion.id = question._id.toString();
-      }
+      // Build question with proper structure
+      let options: QuestionOption[] = [];
       
-      // Ensure options have id field
-      if (formattedQuestion.options && Array.isArray(formattedQuestion.options)) {
-        formattedQuestion.options = formattedQuestion.options.map((opt: any, idx: number) => ({
-          ...opt,
+      if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+        // Has options - use them
+        options = q.options.map((opt: any, idx: number) => ({
           id: opt.id || opt._id || `opt-${idx}`,
+          text: opt.text,
+          isCorrect: opt.isCorrect === true,
         }));
+      } else if (q.correctAnswer) {
+        // Fill-blank - create options from correct answer
+        options = [
+          { id: 'correct', text: q.correctAnswer, isCorrect: true },
+          { id: 'wrong1', text: 'إجابة خاطئة 1', isCorrect: false },
+          { id: 'wrong2', text: 'إجابة خاطئة 2', isCorrect: false },
+          { id: 'wrong3', text: 'إجابة خاطئة 3', isCorrect: false },
+        ].sort(() => Math.random() - 0.5);
+      } else {
+        throw new Error('Question has no options or correct answer');
       }
       
-      // For fill-blank questions, create options from correctAnswer if needed
-      if (formattedQuestion.questionTypeId === 'fill-blank' && formattedQuestion.correctAnswer && !formattedQuestion.options) {
-        // Generate fake options for fill-blank (correct answer + 3 fake ones)
-        formattedQuestion.options = [
-          { id: '1', text: formattedQuestion.correctAnswer, isCorrect: true },
-          { id: '2', text: 'خيار خاطئ 1', isCorrect: false },
-          { id: '3', text: 'خيار خاطئ 2', isCorrect: false },
-          { id: '4', text: 'خيار خاطئ 3', isCorrect: false },
-        ].sort(() => Math.random() - 0.5); // Shuffle
-      }
+      const gameQuestion: GameQuestion = {
+        id: q._id || q.id || `q-${Date.now()}`,
+        text: q.text,
+        options,
+        correctAnswer: q.correctAnswer,
+        points: q.points || 10,
+        timeLimit: q.timeLimit || 30,
+      };
       
-      console.log('Loaded question:', formattedQuestion);
-      setCurrentQuestion(formattedQuestion);
-      setPhase('show_question');
-      setTimeUp(false);
-      setTeamAAnswer(null);
-      setTeamBAnswer(null);
-    } catch (error: any) {
-      // Show error message if no questions found
-      if (error.response?.status === 404) {
-        alert('لا توجد أسئلة متاحة للموضوع ونوع السؤال المحدد. يرجى إنشاء أسئلة من لوحة الإدارة أولاً.');
-        // Go back to subject selection
-        setPhase('team_select_subject');
-        setSelectedSubject(null);
-        setSelectedType(null);
-        return;
-      }
+      setCurrentQuestion(gameQuestion);
+      setTeamAnswers({});
+      setTimeRemaining(gameQuestion.timeLimit);
+      setTimerActive(true);
+      setPhase('answering');
       
-      // For other errors, show generic message
-      console.error('Error loading question:', error);
-      alert('حدث خطأ في تحميل السؤال. يرجى المحاولة مرة أخرى.');
-      setPhase('team_select_subject');
+    } catch (e: any) {
+      console.error('Error loading question:', e);
+      if (e.response?.status === 404) {
+        setError('لا توجد أسئلة لهذا الموضوع. جرب موضوع آخر.');
+      } else {
+        setError('حدث خطأ في تحميل السؤال');
+      }
+      setPhase('select_subject');
       setSelectedSubject(null);
       setSelectedType(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleTeamAAnswer = (answerId: string) => {
-    if (teamAAnswer || timeUp) return;
-    setTeamAAnswer(answerId);
+  const handleTeamAnswer = (teamId: string, answerId: string) => {
+    if (teamAnswers[teamId]) return; // Already answered
+    
+    setTeamAnswers(prev => ({
+      ...prev,
+      [teamId]: answerId,
+    }));
   };
 
-  const handleTeamBAnswer = (answerId: string) => {
-    if (teamBAnswer || timeUp) return;
-    setTeamBAnswer(answerId);
-  };
-
-  // Check if both teams answered - use effect to properly detect state changes
-  useEffect(() => {
-    if (teamAAnswer && teamBAnswer && phase === 'show_question') {
-      // Both teams answered, but don't auto-advance - let them click the button
-      console.log('Both teams have answered');
-    }
-  }, [teamAAnswer, teamBAnswer, phase]);
-
-  const handleTimeUp = useCallback(() => {
-    if (!timeUp) {
-      setTimeUp(true);
-      // Auto-show answer if time is up
-      setTimeout(() => {
-        setPhase('show_answer');
-      }, 1000);
-    }
-  }, [timeUp]);
+  const handleShowResults = useCallback(() => {
+    setTimerActive(false);
+    setPhase('results');
+  }, []);
 
   const handleNextRound = () => {
     if (!currentQuestion) return;
-
-    // Calculate scores for both teams
-    const teamAScore = teams[0];
-    const teamBScore = teams[1];
     
-    if (!teamAScore || !teamBScore) {
-      console.error('Teams not found');
-      return;
-    }
+    // Calculate scores
+    const correctOptionId = currentQuestion.options.find(o => o.isCorrect)?.id;
     
-    let teamACorrect = false;
-    let teamBCorrect = false;
+    setTeams(prevTeams => {
+      return prevTeams.map(team => {
+        const teamAnswer = teamAnswers[team.id];
+        const isCorrect = teamAnswer === correctOptionId;
+        const pointsEarned = isCorrect ? currentQuestion.points : 0;
+        return { ...team, score: team.score + pointsEarned };
+      });
+    });
     
-    if (teamAAnswer && currentQuestion.options) {
-      const selected = currentQuestion.options.find((o) => o.id === teamAAnswer);
-      teamACorrect = selected?.isCorrect || false;
-    }
-    
-    if (teamBAnswer && currentQuestion.options) {
-      const selected = currentQuestion.options.find((o) => o.id === teamBAnswer);
-      teamBCorrect = selected?.isCorrect || false;
-    }
-
-    // Apply sauce effects
-    let teamAPoints = teamACorrect ? (currentQuestion.points || 10) : 0;
-    let teamBPoints = teamBCorrect ? (currentQuestion.points || 10) : 0;
-
-    if (currentSauce) {
-      if (currentSauce.effect === 'double_points' && subjectTeamId === teamAScore.id && teamACorrect) {
-        teamAPoints *= 2;
-      } else if (currentSauce.effect === 'double_points' && subjectTeamId === teamBScore.id && teamBCorrect) {
-        teamBPoints *= 2;
-      }
-      
-      if (currentSauce.effect === 'steal_point' && subjectTeamId === teamAScore.id && teamACorrect) {
-        teamAPoints += 1;
-        teamBPoints = Math.max(0, teamBPoints - 1);
-      } else if (currentSauce.effect === 'steal_point' && subjectTeamId === teamBScore.id && teamBCorrect) {
-        teamBPoints += 1;
-        teamAPoints = Math.max(0, teamAPoints - 1);
-      }
-    }
-
-    // Update scores
-    setTeams((prev) =>
-      prev.map((t) => {
-        if (t.id === teamAScore.id) {
-          return { ...t, score: t.score + teamAPoints };
-        } else if (t.id === teamBScore.id) {
-          return { ...t, score: t.score + teamBPoints };
-        }
-        return t;
-      })
-    );
-
-    // Move to next round - alternate who picks subject
-    const nextTeamIndex = (currentTeamIndex + 1) % teams.length;
-    if (nextTeamIndex === 0) {
-      setRound((r) => r + 1);
-    }
-    setCurrentTeamIndex(nextTeamIndex);
-
     // Reset for next round
     setSelectedSubject(null);
     setSelectedType(null);
     setCurrentQuestion(null);
-    setTeamAAnswer(null);
-    setTeamBAnswer(null);
-    setCurrentSauce(null);
-    setSubjectTeamId(null);
-    setTimeUp(false);
-    setPhase('team_select_subject');
+    setTeamAnswers({});
+    setError(null);
+    
+    // Alternate teams
+    const nextIndex = (currentTeamIndex + 1) % teams.length;
+    setCurrentTeamIndex(nextIndex);
+    if (nextIndex === 0) {
+      setRound(r => r + 1);
+    }
+    
+    setPhase('select_subject');
   };
 
-  if (!gameConfig || teams.length === 0) {
+  // ============ RENDER HELPERS ============
+  const allTeamsAnswered = teams.every(t => teamAnswers[t.id]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // ============ LOADING STATE ============
+  if (teams.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-2xl">جاري التحميل...</div>
-      </div>
+      <WoodyBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-white text-2xl">جاري التحميل...</div>
+        </div>
+      </WoodyBackground>
     );
   }
 
+  // ============ RENDER ============
   return (
     <WoodyBackground>
       <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header with scores */}
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => {
-              if (confirm('هل أنت متأكد من إنهاء اللعبة؟')) {
-                navigate('/');
-              }
-            }}
-            className="text-white/60 hover:text-white"
-          >
-            إنهاء
-          </button>
-          <div className="text-white text-xl">الجولة {round}</div>
-          <div className="w-16" />
-        </div>
-
-        {/* Score Board */}
-        <div className="flex gap-4 justify-center mb-8">
-          {safeTeams.map((team, idx) => (
-            <div
-              key={team.id}
-              className={`rounded-xl p-4 min-w-[150px] text-center transition-all ${
-                idx === currentTeamIndex ? 'scale-110 ring-4 ring-white/50' : 'opacity-70'
-              }`}
-              style={{ backgroundColor: `${team.color}80` }}
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <button
+              onClick={() => {
+                if (confirm('هل أنت متأكد من إنهاء اللعبة؟')) {
+                  sessionStorage.removeItem('gameConfig');
+                  navigate('/');
+                }
+              }}
+              className="text-white/60 hover:text-white px-4 py-2"
             >
-              <h3 className="text-white font-bold mb-1">{team.name}</h3>
-              <div className="text-4xl font-bold text-white">{team.score}</div>
+              ✕ إنهاء
+            </button>
+            <div className="text-white text-xl font-bold">الجولة {round}</div>
+            <div className="w-20" />
+          </div>
+
+          {/* Score Board */}
+          <div className="flex gap-4 justify-center mb-8">
+            {teams.map((team, idx) => (
+              <div
+                key={team.id}
+                className={`rounded-xl p-4 min-w-[140px] text-center transition-all ${
+                  idx === currentTeamIndex && phase === 'select_subject'
+                    ? 'scale-110 ring-4 ring-yellow-400'
+                    : ''
+                }`}
+                style={{ backgroundColor: team.color || '#3b82f6' }}
+              >
+                <h3 className="text-white font-bold mb-1">{team.name}</h3>
+                <div className="text-4xl font-bold text-white">{team.score}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6 text-center">
+              <p className="text-red-300">{error}</p>
             </div>
-          ))}
-        </div>
-
-        {/* Current Team Turn */}
-        {phase === 'team_select_subject' && currentTeam && (
-          <div
-            className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${currentTeam.color}40` }}
-          >
-            <span className="text-white text-xl">
-              دور: <strong>{currentTeam.name}</strong> - اختر الموضوع
-            </span>
-          </div>
-        )}
-        {phase === 'opposing_team_select_type' && opposingTeam && (
-          <div
-            className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${opposingTeam.color}40` }}
-          >
-            <span className="text-white text-xl">
-              دور: <strong>{opposingTeam.name}</strong> - اختر نوع السؤال
-            </span>
-          </div>
-        )}
-        {phase === 'subject_team_select_sauce' && subjectTeamId && (
-          <div
-            className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${teams.find(t => t.id === subjectTeamId)?.color}40` }}
-          >
-            <span className="text-white text-xl">
-              دور: <strong>{teams.find(t => t.id === subjectTeamId)?.name}</strong> - اختر الصلصة الإضافية
-            </span>
-          </div>
-        )}
-        {(phase === 'show_question' || phase === 'both_teams_answer') && (
-          <div className="text-center mb-6 py-3 rounded-xl bg-white/10">
-            <span className="text-white text-xl">
-              جميع الفرق تجيب على السؤال
-            </span>
-          </div>
-        )}
-
-        {/* Phase Content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-          {phase === 'team_select_subject' && (
-            <>
-              <h2 className="text-2xl font-bold text-white text-center mb-6">
-                اختر الموضوع
-              </h2>
-              <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
-                {safeSubjects.map((subject) => (
-                  <button
-                    key={subject.id}
-                    onClick={() => handleSubjectSelect(subject)}
-                    className="bg-white/20 hover:bg-white/30 text-white rounded-xl p-4 transition-all hover:scale-105 min-w-[140px]"
-                  >
-                    <div className="text-lg font-bold">{subject.nameAr}</div>
-                  </button>
-                ))}
-              </div>
-            </>
           )}
 
-          {phase === 'opposing_team_select_type' && (
-            <>
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
-                اختر نوع السؤال
-              </h2>
-              <p className="text-white/60 text-center mb-6">
-                الموضوع: {selectedSubject?.nameAr}
-              </p>
-              <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
-                {safeQuestionTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => handleTypeSelect(type)}
-                    className="bg-white/20 hover:bg-white/30 text-white rounded-xl p-4 transition-all hover:scale-105 min-w-[160px]"
-                  >
-                    <div className="text-lg font-bold">{type.nameAr}</div>
-                    <div className="text-sm text-white/70">{type.description}</div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {phase === 'subject_team_select_sauce' && (
-            <>
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
-                🌶️ الصلصة الإضافية
-              </h2>
-              <p className="text-white/60 text-center mb-4">
-                الصلصة تؤثر على جميع الفرق
-              </p>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <h3 className="text-green-400 font-bold mb-3 text-center">قوى خارقة ⚡</h3>
-                  <div className="space-y-2">
-                    {PowerRegistry.getPositive().slice(0, 4).map((power) => (
-                      <button
-                        key={power.id}
-                        onClick={() => handleSauceSelect(power)}
-                        className="w-full bg-green-600/50 hover:bg-green-600/70 text-white rounded-lg p-3 text-right transition-all"
-                      >
-                        <div className="font-bold">{power.nameAr}</div>
-                        <div className="text-sm text-white/70">{power.descriptionAr}</div>
-                      </button>
-                    ))}
-                  </div>
+          {/* Main Content */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            
+            {/* PHASE: Select Subject */}
+            {phase === 'select_subject' && (
+              <>
+                <div 
+                  className="text-center mb-6 py-3 rounded-lg"
+                  style={{ backgroundColor: `${currentTeam?.color}50` }}
+                >
+                  <span className="text-white text-xl">
+                    دور <strong>{currentTeam?.name}</strong> - اختر الموضوع
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-red-400 font-bold mb-3 text-center">صلصات سلبية 🔥</h3>
-                  <div className="space-y-2">
-                    {PowerRegistry.getNegative().slice(0, 4).map((power) => (
-                      <button
-                        key={power.id}
-                        onClick={() => handleSauceSelect(power)}
-                        className="w-full bg-red-600/50 hover:bg-red-600/70 text-white rounded-lg p-3 text-right transition-all"
-                      >
-                        <div className="font-bold">{power.nameAr}</div>
-                        <div className="text-sm text-white/70">{power.descriptionAr}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="text-center">
-                <Button onClick={() => handleSauceSelect(null)} variant="secondary">
-                  تخطي الصلصة
-                </Button>
-              </div>
-            </>
-          )}
-
-          {(phase === 'show_question' || phase === 'both_teams_answer') && currentQuestion && (
-            <>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  {currentSauce && (
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        currentSauce.isPositive ? 'bg-green-600' : 'bg-red-600'
-                      } text-white`}
+                
+                <div className="flex flex-wrap justify-center gap-4">
+                  {subjects.map(subject => (
+                    <button
+                      key={subject.id}
+                      onClick={() => handleSelectSubject(subject)}
+                      className="bg-white/20 hover:bg-white/30 text-white rounded-xl p-4 min-w-[140px] transition-all hover:scale-105"
                     >
-                      🌶️ {currentSauce.nameAr}
-                    </span>
-                  )}
+                      <div className="text-lg font-bold">{subject.nameAr}</div>
+                    </button>
+                  ))}
                 </div>
-                <Timer
-                  initialTime={currentQuestion.timeLimit || 30}
-                  onTimeUp={handleTimeUp}
-                  paused={!!(teamAAnswer && teamBAnswer)}
-                />
-              </div>
+                
+                {subjects.length === 0 && (
+                  <p className="text-center text-white/60">جاري تحميل المواضيع...</p>
+                )}
+              </>
+            )}
 
-              <h2 className="text-2xl font-bold text-white text-center mb-8">
-                {currentQuestion.text}
-              </h2>
-
-              {/* Team A Answer Section */}
-              {teamA && (
-              <div className="mb-6">
-                <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teamA.color }}>
-                    {teamA.name}
+            {/* PHASE: Select Type */}
+            {phase === 'select_type' && (
+              <>
+                <div 
+                  className="text-center mb-6 py-3 rounded-lg"
+                  style={{ backgroundColor: `${opposingTeam?.color}50` }}
+                >
+                  <span className="text-white text-xl">
+                    دور <strong>{opposingTeam?.name}</strong> - اختر نوع السؤال
                   </span>
                 </div>
-                {currentQuestion.options && (
-                  <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-                    {currentQuestion.options.map((option) => (
+                
+                <p className="text-center text-white/60 mb-4">
+                  الموضوع: {selectedSubject?.nameAr}
+                </p>
+                
+                {loading ? (
+                  <p className="text-center text-white">جاري تحميل السؤال...</p>
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {QUESTION_TYPES.map(type => (
                       <button
-                        key={option.id}
-                        onClick={() => handleTeamAAnswer(option.id)}
-                        disabled={!!teamAAnswer || timeUp}
-                        className={`p-4 rounded-xl text-white text-lg transition-all min-w-[200px] flex-1 max-w-[280px] ${
-                          teamAAnswer === option.id
-                            ? 'bg-blue-600 ring-4 ring-blue-400'
-                            : 'bg-white/20 hover:bg-white/30'
-                        } ${(teamAAnswer || timeUp) ? 'cursor-not-allowed' : ''}`}
+                        key={type.id}
+                        onClick={() => handleSelectType(type)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl p-4 min-w-[160px] transition-all hover:scale-105"
                       >
-                        {option.text}
+                        <div className="text-lg font-bold">{type.nameAr}</div>
+                        <div className="text-sm text-white/70">{type.description}</div>
                       </button>
                     ))}
                   </div>
                 )}
-              </div>
-              )}
+              </>
+            )}
 
-              {/* Team B Answer Section */}
-              {teamB && (
-              <div className="mb-6">
-                <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teamB.color }}>
-                    {teamB.name}
-                  </span>
+            {/* PHASE: Answering */}
+            {phase === 'answering' && currentQuestion && (
+              <>
+                {/* Timer */}
+                <div className="flex justify-end mb-4">
+                  <div className={`text-3xl font-bold ${timeRemaining <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    {formatTime(timeRemaining)}
+                  </div>
                 </div>
-                {currentQuestion.options && (
-                  <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-                    {currentQuestion.options.map((option) => (
-                      <button
-                        key={option.id}
-                        onClick={() => handleTeamBAnswer(option.id)}
-                        disabled={!!teamBAnswer || timeUp}
-                        className={`p-4 rounded-xl text-white text-lg transition-all min-w-[200px] flex-1 max-w-[280px] ${
-                          teamBAnswer === option.id
-                            ? 'bg-blue-600 ring-4 ring-blue-400'
-                            : 'bg-white/20 hover:bg-white/30'
-                        } ${(teamBAnswer || timeUp) ? 'cursor-not-allowed' : ''}`}
-                      >
-                        {option.text}
-                      </button>
-                    ))}
+                
+                {/* Question */}
+                <h2 className="text-2xl font-bold text-white text-center mb-8">
+                  {currentQuestion.text}
+                </h2>
+                
+                {/* Each Team's Answer Section */}
+                {teams.map(team => (
+                  <div key={team.id} className="mb-8">
+                    <div 
+                      className="text-center mb-3 py-2 rounded-lg"
+                      style={{ backgroundColor: `${team.color}40` }}
+                    >
+                      <span className="text-white font-bold">{team.name}</span>
+                      {teamAnswers[team.id] && (
+                        <span className="text-green-400 mr-2"> ✓ أجاب</span>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentQuestion.options.map(option => {
+                        const isSelected = teamAnswers[team.id] === option.id;
+                        const isAnswered = !!teamAnswers[team.id];
+                        
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => handleTeamAnswer(team.id, option.id)}
+                            disabled={isAnswered}
+                            className={`p-4 rounded-xl text-white text-lg transition-all ${
+                              isSelected
+                                ? 'bg-blue-600 ring-4 ring-blue-400'
+                                : isAnswered
+                                ? 'bg-white/10 cursor-not-allowed opacity-50'
+                                : 'bg-white/20 hover:bg-white/30'
+                            }`}
+                          >
+                            {option.text}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Show Results Button */}
+                {allTeamsAnswered && (
+                  <div className="text-center mt-6">
+                    <Button onClick={handleShowResults} variant="primary" size="lg">
+                      كشف الإجابة
+                    </Button>
                   </div>
                 )}
-              </div>
-              )}
+              </>
+            )}
 
-              {(teamAAnswer && teamBAnswer) && (
-                <div className="text-center">
-                  <Button onClick={() => setPhase('show_answer')} variant="primary" size="lg">
-                    كشف الإجابة
+            {/* PHASE: Results */}
+            {phase === 'results' && currentQuestion && (
+              <>
+                <h2 className="text-2xl font-bold text-white text-center mb-6">
+                  {currentQuestion.text}
+                </h2>
+                
+                {/* Correct Answer */}
+                <div className="bg-green-600/30 border-2 border-green-500 rounded-xl p-4 mb-6 text-center">
+                  <p className="text-green-400 text-sm mb-1">الإجابة الصحيحة:</p>
+                  <p className="text-white text-xl font-bold">
+                    {currentQuestion.options.find(o => o.isCorrect)?.text}
+                  </p>
+                </div>
+                
+                {/* Each Team's Result */}
+                {teams.map(team => {
+                  const teamAnswer = teamAnswers[team.id];
+                  const selectedOption = currentQuestion.options.find(o => o.id === teamAnswer);
+                  const isCorrect = selectedOption?.isCorrect === true;
+                  
+                  return (
+                    <div 
+                      key={team.id} 
+                      className={`mb-4 p-4 rounded-xl ${
+                        isCorrect ? 'bg-green-600/30' : 'bg-red-600/30'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-bold">{team.name}</span>
+                        <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>
+                          {!teamAnswer ? 'لم يجب ❌' : isCorrect ? 'صحيح! ✓ +' + currentQuestion.points : 'خطأ ❌'}
+                        </span>
+                      </div>
+                      {teamAnswer && (
+                        <p className="text-white/70 text-sm mt-1">
+                          الإجابة: {selectedOption?.text || 'غير معروف'}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {/* Next Round Button */}
+                <div className="text-center mt-8">
+                  <Button onClick={handleNextRound} variant="primary" size="lg">
+                    الجولة التالية ←
                   </Button>
                 </div>
-              )}
-            </>
-          )}
-
-          {phase === 'show_answer' && currentQuestion && (
-            <>
-              <h2 className="text-2xl font-bold text-white text-center mb-4">
-                {currentQuestion.text}
-              </h2>
-
-              {/* Team A Results */}
-              {teamA && (
-              <div className="mb-6">
-                <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teamA.color }}>
-                    {teamA.name}
-                  </span>
-                </div>
-                {currentQuestion.options && (
-                  <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-                    {currentQuestion.options.map((option) => {
-                      const isCorrect = option.isCorrect;
-                      const wasSelected = teamAAnswer === option.id;
-                      return (
-                        <div
-                          key={option.id}
-                          className={`p-4 rounded-xl text-white text-lg min-w-[200px] flex-1 max-w-[280px] text-center ${
-                            isCorrect
-                              ? 'bg-green-600'
-                              : wasSelected
-                              ? 'bg-red-600'
-                              : 'bg-white/20'
-                          }`}
-                        >
-                          {option.text}
-                          {isCorrect && ' ✓'}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              )}
-
-              {/* Team B Results */}
-              {teamB && (
-              <div className="mb-6">
-                <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teamB.color }}>
-                    {teamB.name}
-                  </span>
-                </div>
-                {currentQuestion.options && (
-                  <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-                    {currentQuestion.options.map((option) => {
-                      const isCorrect = option.isCorrect;
-                      const wasSelected = teamBAnswer === option.id;
-                      return (
-                        <div
-                          key={option.id}
-                          className={`p-4 rounded-xl text-white text-lg min-w-[200px] flex-1 max-w-[280px] text-center ${
-                            isCorrect
-                              ? 'bg-green-600'
-                              : wasSelected
-                              ? 'bg-red-600'
-                              : 'bg-white/20'
-                          }`}
-                        >
-                          {option.text}
-                          {isCorrect && ' ✓'}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              )}
-
-              <div className="text-center">
-                {/* Team A Result */}
-                {teamA && (
-                <div className="mb-4">
-                  <div className="text-lg mb-2" style={{ color: teamA.color }}>
-                    {teamA.name}:
-                  </div>
-                  <div className="text-xl">
-                    {teamAAnswer &&
-                    currentQuestion.options?.find((o) => o.id === teamAAnswer)
-                      ?.isCorrect ? (
-                      <span className="text-green-400">إجابة صحيحة! 🎉</span>
-                    ) : (
-                      <span className="text-red-400">
-                        {!teamAAnswer ? 'لم يُجب' : 'إجابة خاطئة 😢'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                )}
-
-                {/* Team B Result */}
-                {teamB && (
-                <div className="mb-6">
-                  <div className="text-lg mb-2" style={{ color: teamB.color }}>
-                    {teamB.name}:
-                  </div>
-                  <div className="text-xl">
-                    {teamBAnswer &&
-                    currentQuestion.options?.find((o) => o.id === teamBAnswer)
-                      ?.isCorrect ? (
-                      <span className="text-green-400">إجابة صحيحة! 🎉</span>
-                    ) : (
-                      <span className="text-red-400">
-                        {!teamBAnswer ? 'لم يُجب' : 'إجابة خاطئة 😢'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                )}
-
-                <Button onClick={handleNextRound} variant="primary" size="lg">
-                  الجولة التالية
-                </Button>
-              </div>
-            </>
-          )}
+              </>
+            )}
+            
+          </div>
         </div>
-
-        {/* Extra Sauce Toggle */}
-        <div className="mt-4 text-center">
-          <label className="text-white/60 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={extraSauceEnabled}
-              onChange={(e) => setExtraSauceEnabled(e.target.checked)}
-              className="ml-2"
-            />
-            تفعيل الصلصة الإضافية
-          </label>
-        </div>
-      </div>
       </div>
     </WoodyBackground>
   );
 };
 
 export default LocalGamePage;
-

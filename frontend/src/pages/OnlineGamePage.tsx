@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
-import { Timer } from '../components/Shared/Timer';
-import { Question } from '../types/question.types';
-import { Power } from '../types/power.types';
-import { PowerRegistry } from '../types/power.registry';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
 import api from '../utils/api';
 
+// ============ TYPES ============
 interface Player {
   id: string;
   name: string;
@@ -33,154 +30,202 @@ interface GameConfig {
   };
 }
 
-type GamePhase = 
-  | 'waiting'
-  | 'show_question'
-  | 'show_answer'
-  | 'round_result'
-  | 'game_over';
+interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
 
+interface GameQuestion {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+  points: number;
+  timeLimit: number;
+}
+
+type GamePhase = 'question' | 'results';
+
+// ============ COMPONENT ============
 const OnlineGamePage: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Game state
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [isHost] = useState(() => sessionStorage.getItem('isHost') === 'true');
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [round, setRound] = useState(1);
-  const [phase, setPhase] = useState<GamePhase>('waiting');
+  const [phase, setPhase] = useState<GamePhase>('question');
   
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  // Question state
+  const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [timeUp, setTimeUp] = useState(false);
-  const [currentSauce, setCurrentSauce] = useState<Power | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [timerActive, setTimerActive] = useState(false);
   
-  // Safe array getter to prevent .map() errors
-  const safeTeams = Array.isArray(teams) ? teams : [];
+  // Loading
+  const [loading, setLoading] = useState(true);
 
+  // ============ INITIALIZATION ============
   useEffect(() => {
     const config = sessionStorage.getItem('gameConfig');
     if (!config) {
       navigate('/');
       return;
     }
-    const parsed = JSON.parse(config) as GameConfig;
-    setGameConfig(parsed);
-    setTeams(parsed.teams);
     
-    if (isHost) {
-      // Host starts the game
+    try {
+      const parsed = JSON.parse(config) as GameConfig;
+      setGameConfig(parsed);
+      // Initialize teams with score 0 if needed
+      const teamsWithScore = parsed.teams.map(t => ({ 
+        ...t, 
+        score: t.score || 0 
+      }));
+      setTeams(teamsWithScore);
       loadNextQuestion();
+    } catch (e) {
+      console.error('Error parsing game config:', e);
+      navigate('/');
     }
-  }, [navigate, isHost]);
+  }, [navigate]);
 
-  const currentTeam = safeTeams.length > currentTeamIndex ? safeTeams[currentTeamIndex] : null;
-
+  // ============ LOAD QUESTION ============
   const loadNextQuestion = async () => {
+    setLoading(true);
+    
     try {
       const response = await api.post('/games/temp/question', {});
-      const question = response.data;
+      const q = response.data;
       
-      // Ensure the question has the correct structure
-      let formattedQuestion = { ...question };
-      if (!question.id && question._id) {
-        formattedQuestion.id = question._id.toString();
-      }
+      // Build question
+      let options: QuestionOption[] = [];
       
-      // Ensure options have id field
-      if (formattedQuestion.options && Array.isArray(formattedQuestion.options)) {
-        formattedQuestion.options = formattedQuestion.options.map((opt: any, idx: number) => ({
-          ...opt,
+      if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+        options = q.options.map((opt: any, idx: number) => ({
           id: opt.id || opt._id || `opt-${idx}`,
+          text: opt.text,
+          isCorrect: opt.isCorrect === true,
         }));
+      } else if (q.correctAnswer) {
+        options = [
+          { id: 'correct', text: q.correctAnswer, isCorrect: true },
+          { id: 'wrong1', text: 'إجابة خاطئة 1', isCorrect: false },
+          { id: 'wrong2', text: 'إجابة خاطئة 2', isCorrect: false },
+          { id: 'wrong3', text: 'إجابة خاطئة 3', isCorrect: false },
+        ].sort(() => Math.random() - 0.5);
       }
       
-      setCurrentQuestion(formattedQuestion);
-    } catch (error) {
-      // Mock question
+      const gameQuestion: GameQuestion = {
+        id: q._id || q.id || `q-${Date.now()}`,
+        text: q.text,
+        options,
+        points: q.points || 10,
+        timeLimit: q.timeLimit || 30,
+      };
+      
+      setCurrentQuestion(gameQuestion);
+      setSelectedAnswer(null);
+      setTimeRemaining(gameQuestion.timeLimit);
+      setTimerActive(true);
+      setPhase('question');
+      
+    } catch (e) {
+      console.error('Error loading question:', e);
+      // Use mock question
       setCurrentQuestion({
-        id: `q-${Date.now()}`,
-        text: 'ما هي أكبر دولة في العالم من حيث المساحة؟',
-        subjectId: '1',
-        questionTypeId: '1',
+        id: `mock-${Date.now()}`,
+        text: 'ما هي عاصمة فرنسا؟',
         options: [
-          { id: '1', text: 'روسيا', isCorrect: true },
-          { id: '2', text: 'كندا', isCorrect: false },
-          { id: '3', text: 'الصين', isCorrect: false },
-          { id: '4', text: 'أمريكا', isCorrect: false },
+          { id: '1', text: 'باريس', isCorrect: true },
+          { id: '2', text: 'لندن', isCorrect: false },
+          { id: '3', text: 'برلين', isCorrect: false },
+          { id: '4', text: 'مدريد', isCorrect: false },
         ],
-        difficulty: 'medium',
         points: 10,
         timeLimit: 30,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
+      setTimeRemaining(30);
+      setTimerActive(true);
+      setPhase('question');
+    } finally {
+      setLoading(false);
     }
-
-    // Random sauce if enabled
-    if (gameConfig?.settings.extraSauceEnabled) {
-      const allPowers = [...PowerRegistry.getPositive(), ...PowerRegistry.getNegative()];
-      const randomSauce = allPowers[Math.floor(Math.random() * allPowers.length)];
-      setCurrentSauce(Math.random() > 0.5 ? randomSauce : null);
-    }
-
-    setPhase('show_question');
-    setSelectedAnswer(null);
-    setTimeUp(false);
   };
+
+  // ============ TIMER ============
+  useEffect(() => {
+    if (!timerActive || timeRemaining <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timerActive, timeRemaining]);
+
+  // Auto-show results when time runs out
+  useEffect(() => {
+    if (timeRemaining === 0 && phase === 'question') {
+      handleShowResults();
+    }
+  }, [timeRemaining, phase]);
+
+  // ============ GAME LOGIC ============
+  const currentTeam = teams[currentTeamIndex] || null;
 
   const handleAnswer = (answerId: string) => {
-    if (selectedAnswer || timeUp) return;
+    if (selectedAnswer) return;
     setSelectedAnswer(answerId);
-    
-    // In online mode, send answer to server
-    // TODO: socket.emit('answer', { answerId })
   };
 
-  const handleTimeUp = () => {
-    if (!selectedAnswer) {
-      setTimeUp(true);
-    }
-  };
-
-  const showAnswer = () => {
-    setPhase('show_answer');
-  };
+  const handleShowResults = useCallback(() => {
+    setTimerActive(false);
+    setPhase('results');
+  }, []);
 
   const handleNextRound = () => {
     if (!currentQuestion) return;
-
+    
     // Calculate score
-    let isCorrect = false;
-    if (selectedAnswer && currentQuestion.options) {
-      const selected = currentQuestion.options.find((o) => o.id === selectedAnswer);
-      isCorrect = selected?.isCorrect || false;
-    }
-
-    if (isCorrect) {
-      setTeams((prev) =>
-        prev.map((t) =>
-          t.id === currentTeam?.id
-            ? { ...t, score: t.score + (currentQuestion.points || 10) }
+    const correctOption = currentQuestion.options.find(o => o.isCorrect);
+    const isCorrect = selectedAnswer === correctOption?.id;
+    
+    if (isCorrect && currentTeam) {
+      setTeams(prevTeams => 
+        prevTeams.map(t => 
+          t.id === currentTeam.id 
+            ? { ...t, score: t.score + currentQuestion.points }
             : t
         )
       );
     }
-
-    // Move to next team/round
-    const nextTeamIndex = (currentTeamIndex + 1) % teams.length;
-    if (nextTeamIndex === 0) {
-      setRound((r) => r + 1);
-    }
-    setCurrentTeamIndex(nextTeamIndex);
-
-    setCurrentQuestion(null);
-    setSelectedAnswer(null);
-    setCurrentSauce(null);
-    setTimeUp(false);
     
+    // Next team/round
+    const nextIndex = (currentTeamIndex + 1) % Math.max(teams.length, 1);
+    setCurrentTeamIndex(nextIndex);
+    if (nextIndex === 0) {
+      setRound(r => r + 1);
+    }
+    
+    setSelectedAnswer(null);
     loadNextQuestion();
   };
 
+  // ============ RENDER HELPERS ============
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // ============ LOADING STATE ============
   if (!gameConfig || teams.length === 0) {
     return (
       <WoodyBackground>
@@ -191,132 +236,133 @@ const OnlineGamePage: React.FC = () => {
     );
   }
 
+  // ============ RENDER ============
   return (
     <WoodyBackground>
       <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => {
-              if (confirm('هل أنت متأكد من إنهاء اللعبة؟')) {
-                navigate('/');
-              }
-            }}
-            className="text-white/60 hover:text-white"
-          >
-            إنهاء
-          </button>
-          <div className="text-white">
-            <span className="text-white/60">الغرفة: </span>
-            <span className="text-yellow-400 font-bold">{gameConfig.roomCode}</span>
-            <span className="text-white/60 mr-4"> | الجولة {round}</span>
-          </div>
-          <div className="w-16" />
-        </div>
-
-        {/* Score Board */}
-        <div className="flex gap-4 justify-center mb-8">
-          {safeTeams.map((team, idx) => (
-            <div
-              key={team.id}
-              className={`rounded-xl p-4 min-w-[150px] text-center transition-all ${
-                idx === currentTeamIndex ? 'scale-110 ring-4 ring-white/50' : 'opacity-70'
-              }`}
-              style={{ backgroundColor: `${team.color}80` }}
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <button
+              onClick={() => {
+                if (confirm('هل أنت متأكد من إنهاء اللعبة؟')) {
+                  sessionStorage.removeItem('gameConfig');
+                  navigate('/');
+                }
+              }}
+              className="text-white/60 hover:text-white px-4 py-2"
             >
-              <h3 className="text-white font-bold mb-1">{team.name}</h3>
-              <div className="text-4xl font-bold text-white">{team.score}</div>
-              <div className="text-white/60 text-xs mt-1">
-                {team.players.length} لاعب
-              </div>
+              ✕ إنهاء
+            </button>
+            <div className="text-white">
+              <span className="text-yellow-400 font-bold">{gameConfig.roomCode}</span>
+              <span className="text-white/60 mr-4"> | الجولة {round}</span>
             </div>
-          ))}
-        </div>
-
-        {/* Current Team Turn */}
-        {currentTeam && (
-          <div
-            className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${currentTeam.color}40` }}
-          >
-            <span className="text-white text-xl">
-              دور: <strong>{currentTeam.name}</strong>
-            </span>
+            <div className="w-20" />
           </div>
-        )}
 
-        {/* Game Content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-          {phase === 'show_question' && currentQuestion && (
-            <>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  {currentSauce && (
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        currentSauce.isPositive ? 'bg-green-600' : 'bg-red-600'
-                      } text-white`}
-                    >
-                      🌶️ {currentSauce.nameAr}
-                    </span>
-                  )}
+          {/* Score Board */}
+          <div className="flex gap-4 justify-center mb-8">
+            {teams.map((team, idx) => (
+              <div
+                key={team.id}
+                className={`rounded-xl p-4 min-w-[140px] text-center transition-all ${
+                  idx === currentTeamIndex ? 'scale-110 ring-4 ring-yellow-400' : ''
+                }`}
+                style={{ backgroundColor: team.color || '#3b82f6' }}
+              >
+                <h3 className="text-white font-bold mb-1">{team.name}</h3>
+                <div className="text-4xl font-bold text-white">{team.score}</div>
+                <div className="text-white/60 text-xs mt-1">
+                  {team.players?.length || 0} لاعب
                 </div>
-                <Timer
-                  initialTime={currentQuestion.timeLimit || 30}
-                  onTimeUp={handleTimeUp}
-                  paused={!!selectedAnswer}
-                />
               </div>
+            ))}
+          </div>
 
-              <h2 className="text-2xl font-bold text-white text-center mb-8">
-                {currentQuestion.text}
-              </h2>
-
-              {currentQuestion.options && (
-                <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto mb-6">
-                  {currentQuestion.options.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => handleAnswer(option.id)}
-                      disabled={!!selectedAnswer || timeUp}
-                      className={`p-4 rounded-xl text-white text-lg transition-all min-w-[200px] flex-1 max-w-[280px] ${
-                        selectedAnswer === option.id
-                          ? 'bg-blue-600 ring-4 ring-blue-400'
-                          : 'bg-white/20 hover:bg-white/30'
-                      } ${(selectedAnswer || timeUp) ? 'cursor-not-allowed' : ''}`}
-                    >
-                      {option.text}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {isHost && (
-                <div className="text-center">
-                  <Button onClick={showAnswer} variant="primary" size="lg">
-                    كشف الإجابة
-                  </Button>
-                </div>
-              )}
-            </>
+          {/* Current Team */}
+          {currentTeam && (
+            <div 
+              className="text-center mb-6 py-3 rounded-lg"
+              style={{ backgroundColor: `${currentTeam.color}50` }}
+            >
+              <span className="text-white text-xl">
+                دور: <strong>{currentTeam.name}</strong>
+              </span>
+            </div>
           )}
 
-          {phase === 'show_answer' && currentQuestion && (
-            <>
-              <h2 className="text-2xl font-bold text-white text-center mb-4">
-                {currentQuestion.text}
-              </h2>
-
-              {currentQuestion.options && (
-                <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto mb-6">
-                  {currentQuestion.options.map((option) => {
+          {/* Main Content */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="text-white text-xl">جاري تحميل السؤال...</div>
+              </div>
+            ) : phase === 'question' && currentQuestion ? (
+              <>
+                {/* Timer */}
+                <div className="flex justify-end mb-4">
+                  <div className={`text-3xl font-bold ${timeRemaining <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    {formatTime(timeRemaining)}
+                  </div>
+                </div>
+                
+                {/* Question */}
+                <h2 className="text-2xl font-bold text-white text-center mb-8">
+                  {currentQuestion.text}
+                </h2>
+                
+                {/* Options */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {currentQuestion.options.map(option => {
+                    const isSelected = selectedAnswer === option.id;
+                    
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => handleAnswer(option.id)}
+                        disabled={!!selectedAnswer}
+                        className={`p-4 rounded-xl text-white text-lg transition-all ${
+                          isSelected
+                            ? 'bg-blue-600 ring-4 ring-blue-400'
+                            : selectedAnswer
+                            ? 'bg-white/10 cursor-not-allowed opacity-50'
+                            : 'bg-white/20 hover:bg-white/30'
+                        }`}
+                      >
+                        {option.text}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Show Results Button */}
+                {selectedAnswer && (
+                  <div className="text-center">
+                    <Button onClick={handleShowResults} variant="primary" size="lg">
+                      كشف الإجابة
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : phase === 'results' && currentQuestion ? (
+              <>
+                <h2 className="text-2xl font-bold text-white text-center mb-6">
+                  {currentQuestion.text}
+                </h2>
+                
+                {/* Options with Results */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {currentQuestion.options.map(option => {
                     const isCorrect = option.isCorrect;
                     const wasSelected = selectedAnswer === option.id;
+                    
                     return (
                       <div
                         key={option.id}
-                        className={`p-4 rounded-xl text-white text-lg min-w-[200px] flex-1 max-w-[280px] text-center ${
+                        className={`p-4 rounded-xl text-white text-lg text-center ${
                           isCorrect
                             ? 'bg-green-600'
                             : wasSelected
@@ -330,30 +376,31 @@ const OnlineGamePage: React.FC = () => {
                     );
                   })}
                 </div>
-              )}
-
-              <div className="text-center">
-                <div className="text-2xl mb-4">
-                  {selectedAnswer &&
-                  currentQuestion.options?.find((o) => o.id === selectedAnswer)
-                    ?.isCorrect ? (
-                    <span className="text-green-400">إجابة صحيحة! 🎉</span>
-                  ) : (
-                    <span className="text-red-400">
-                      {timeUp ? 'انتهى الوقت! ⏰' : 'إجابة خاطئة 😢'}
-                    </span>
-                  )}
+                
+                {/* Result Message */}
+                <div className="text-center mb-6">
+                  <div className="text-2xl">
+                    {selectedAnswer && currentQuestion.options.find(o => o.id === selectedAnswer)?.isCorrect ? (
+                      <span className="text-green-400">إجابة صحيحة! 🎉 +{currentQuestion.points}</span>
+                    ) : (
+                      <span className="text-red-400">
+                        {!selectedAnswer ? 'انتهى الوقت! ⏰' : 'إجابة خاطئة 😢'}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {isHost && (
+                
+                {/* Next Button */}
+                <div className="text-center">
                   <Button onClick={handleNextRound} variant="primary" size="lg">
-                    السؤال التالي
+                    السؤال التالي ←
                   </Button>
-                )}
-              </div>
-            </>
-          )}
+                </div>
+              </>
+            ) : null}
+            
+          </div>
         </div>
-      </div>
       </div>
     </WoodyBackground>
   );
