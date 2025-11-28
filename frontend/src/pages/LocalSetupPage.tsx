@@ -2,63 +2,43 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
 
-const TEAM_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'];
+const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
 interface Player {
   id: string;
   name: string;
-  teamId: string | null;
-}
-
-interface Team {
-  id: string;
-  name: string;
   color: string;
+  score: number;
 }
 
 const LocalSetupPage: React.FC = () => {
   const navigate = useNavigate();
   const [players, setPlayers] = useState<Player[]>([]);
-  const [teams] = useState<Team[]>([
-    { id: 'team-1', name: 'الفريق الأزرق', color: TEAM_COLORS[0] },
-    { id: 'team-2', name: 'الفريق الأحمر', color: TEAM_COLORS[1] },
-  ]);
   const [newPlayerName, setNewPlayerName] = useState('');
 
   const addPlayer = () => {
     if (!newPlayerName.trim()) return;
+    const colorIndex = players.length % PLAYER_COLORS.length;
     setPlayers([...players, {
       id: `player-${Date.now()}`,
       name: newPlayerName.trim(),
-      teamId: null,
+      color: PLAYER_COLORS[colorIndex],
+      score: 0,
     }]);
     setNewPlayerName('');
-  };
-
-  const assignToTeam = (playerId: string, teamId: string) => {
-    setPlayers(players.map(p => 
-      p.id === playerId ? { ...p, teamId: teamId || null } : p
-    ));
   };
 
   const removePlayer = (playerId: string) => {
     setPlayers(players.filter(p => p.id !== playerId));
   };
 
-  const unassignedPlayers = players.filter(p => !p.teamId);
-  const getTeamPlayers = (teamId: string) => players.filter(p => p.teamId === teamId);
-
-  const canStart = players.length >= 2 && unassignedPlayers.length === 0;
+  const canStart = players.length >= 2;
 
   const startGame = () => {
     if (!canStart) return;
     
     const gameData = {
-      teams: teams.map(t => ({
-        ...t,
-        players: getTeamPlayers(t.id),
-        score: 0,
-      })),
+      players: players.map(p => ({ ...p, score: 0 })),
     };
     
     sessionStorage.setItem('localGame', JSON.stringify(gameData));
@@ -99,72 +79,41 @@ const LocalSetupPage: React.FC = () => {
                 إضافة
               </button>
             </div>
-            
-            {/* Unassigned Players */}
-            {unassignedPlayers.length > 0 && (
-              <div className="mt-4">
-                <p className="text-white/60 text-sm mb-2">اختر فريق للاعبين:</p>
-                <div className="flex flex-wrap gap-2">
-                  {unassignedPlayers.map(player => (
-                    <div key={player.id} className="bg-white/20 rounded-lg p-2 flex items-center gap-2">
-                      <span className="text-white">{player.name}</span>
-                      {teams.map(team => (
-                        <button
-                          key={team.id}
-                          onClick={() => assignToTeam(player.id, team.id)}
-                          className="w-6 h-6 rounded-full"
-                          style={{ backgroundColor: team.color }}
-                          title={team.name}
-                        />
-                      ))}
-                      <button
-                        onClick={() => removePlayer(player.id)}
-                        className="text-red-400 hover:text-red-300 mr-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Teams */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            {teams.map(team => (
-              <div
-                key={team.id}
-                className="rounded-xl p-4"
-                style={{ backgroundColor: `${team.color}40`, borderColor: team.color, borderWidth: 2 }}
-              >
-                <h3 className="text-white font-bold mb-3">{team.name}</h3>
-                <div className="min-h-[80px]">
-                  {getTeamPlayers(team.id).length === 0 ? (
-                    <p className="text-white/40 text-sm">لا يوجد لاعبين</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {getTeamPlayers(team.id).map(player => (
-                        <div
-                          key={player.id}
-                          className="bg-white/30 rounded px-2 py-1 text-white text-sm flex items-center gap-1"
-                        >
-                          {player.name}
-                          <button
-                            onClick={() => assignToTeam(player.id, '')}
-                            onMouseDown={(e) => e.preventDefault()}
-                            className="text-white/60 hover:text-white"
-                            title="إزالة من الفريق"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+          {/* Players List */}
+          <div className="bg-white/10 rounded-xl p-6 mb-8">
+            <h2 className="text-xl font-bold text-white mb-4">اللاعبون ({players.length})</h2>
+            {players.length === 0 ? (
+              <p className="text-white/40 text-center py-8">لا يوجد لاعبين. أضف لاعبين للبدء.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {players.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className="rounded-xl p-4 flex items-center justify-between"
+                    style={{ backgroundColor: `${player.color}40`, borderColor: player.color, borderWidth: 2 }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+                        style={{ backgroundColor: player.color }}
+                      >
+                        {index + 1}
+                      </div>
+                      <span className="text-white font-bold">{player.name}</span>
                     </div>
-                  )}
-                </div>
+                    <button
+                      onClick={() => removePlayer(player.id)}
+                      className="text-red-400 hover:text-red-300"
+                      title="إزالة اللاعب"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Start Button */}
@@ -182,7 +131,7 @@ const LocalSetupPage: React.FC = () => {
             </button>
             {!canStart && (
               <p className="text-white/50 text-sm mt-2">
-                أضف لاعبين ووزعهم على الفرق
+                أضف لاعبين على الأقل (2 لاعبين)
               </p>
             )}
           </div>

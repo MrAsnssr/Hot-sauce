@@ -59,17 +59,16 @@ const OnlineWaitingPage: React.FC = () => {
       setError('فشل الاتصال بالخادم. يرجى التأكد من أن المضيف متصل.');
     });
 
-    socket.on('game-started', (data?: { teams?: any[] }) => {
+    socket.on('game-started', (data?: { players?: any[] }) => {
       console.log('🎮 Game started event received, navigating to game page', data);
       clearInterval(dotsInterval);
       
       // Save game data if provided
-      if (data?.teams) {
+      if (data?.players) {
         const gameData = {
           roomCode,
           isHost: false,
-          teams: data.teams,
-          players: [],
+          players: data.players,
         };
         sessionStorage.setItem('onlineGame', JSON.stringify(gameData));
       }
@@ -96,8 +95,8 @@ const OnlineWaitingPage: React.FC = () => {
     // Also listen for config updates that might indicate game is starting
     socket.on('game-config-updated', (config: any) => {
       console.log('📋 Game config updated in waiting page', config);
-      // If teams are provided, game might be starting
-      if (config.teams && config.teams.length > 0) {
+      // If players are provided, game might be starting
+      if (config.players && config.players.length > 0) {
         // Save config but don't navigate yet - wait for explicit game-started
         const gameData = {
           roomCode,

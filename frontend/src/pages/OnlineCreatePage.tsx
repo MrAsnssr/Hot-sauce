@@ -5,7 +5,7 @@ import { Button } from '../components/Shared/Button';
 import api from '../utils/api';
 import { io, Socket } from 'socket.io-client';
 
-const TEAM_COLORS = ['#3b82f6', '#ef4444'];
+const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
 interface Subject {
   id: string;
@@ -31,10 +31,6 @@ const OnlineCreatePage: React.FC = () => {
   
   // Settings Mode
   const [showSettings, setShowSettings] = useState(false);
-  
-  // Teams
-  const [team1Name, setTeam1Name] = useState('الفريق الأزرق');
-  const [team2Name, setTeam2Name] = useState('الفريق الأحمر');
   
   // Settings Data
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -124,7 +120,7 @@ const OnlineCreatePage: React.FC = () => {
     });
 
     // Listen for game start confirmation (host should also navigate when server confirms)
-    newSocket.on('game-started', (data: { teams: any[] }) => {
+    newSocket.on('game-started', (data: { players: any[] }) => {
       console.log('🚀 Host received game-started confirmation', data);
       const existingConfig = sessionStorage.getItem('onlineGame');
       if (!existingConfig) {
@@ -132,9 +128,13 @@ const OnlineCreatePage: React.FC = () => {
         const fallbackGameData = {
           roomCode: currentCode,
           isHost: true,
-          teams: data.teams,
+          players: data.players || latest.players.map((p, i) => ({ 
+            id: p.socketId, 
+            name: p.name,
+            color: PLAYER_COLORS[i % PLAYER_COLORS.length],
+            score: 0
+          })),
           selectedSubjects: latest.selectedSubjects,
-          players: latest.players.map(p => ({ id: p.socketId, name: p.name })),
         };
         sessionStorage.setItem('onlineGame', JSON.stringify(fallbackGameData));
       }
@@ -186,37 +186,29 @@ const OnlineCreatePage: React.FC = () => {
     if (!socket || startingGame) return;
     setStartingGame(true);
 
-    // Distribute players to teams (simple round-robin for now)
-    // Host is usually in Team 1 or spectator, but let's assign everyone
-    const team1Players: any[] = [];
-    const team2Players: any[] = [];
-    
-    players.forEach((p, i) => {
-      if (i % 2 === 0) team1Players.push({ id: p.socketId, name: p.name });
-      else team2Players.push({ id: p.socketId, name: p.name });
-    });
-
-    const teams = [
-      { id: 'team-1', name: team1Name, color: TEAM_COLORS[0], score: 0, players: team1Players },
-      { id: 'team-2', name: team2Name, color: TEAM_COLORS[1], score: 0, players: team2Players },
-    ];
+    // Create players array with colors and scores
+    const gamePlayers = players.map((p, i) => ({
+      id: p.socketId,
+      name: p.name,
+      color: PLAYER_COLORS[i % PLAYER_COLORS.length],
+      score: 0,
+    }));
 
     const gameConfig = {
       roomCode,
       isHost: true,
-      teams,
+      players: gamePlayers,
       selectedSubjects,
-      players: players.map(p => ({ id: p.socketId, name: p.name })),
     };
     
     // Save to session for persistence
     sessionStorage.setItem('onlineGame', JSON.stringify(gameConfig));
     
     // Emit start game event - host waits for server confirmation before navigating
-    socket.emit('update-game-config', gameConfig); // Notify backend of teams
+    socket.emit('update-game-config', gameConfig); // Notify backend of players
     socket.emit('start-game', {
       gameId: roomCode,
-      teams,
+      players: gamePlayers,
     });
   };
 
@@ -265,8 +257,8 @@ const OnlineCreatePage: React.FC = () => {
                 </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-white/70 text-sm">
-                    <span>الفرق:</span>
-                    <span>{team1Name} vs {team2Name}</span>
+                    <span>اللاعبون:</span>
+                    <span>{players.length} لاعب</span>
                   </div>
                   <div className="flex justify-between text-white/70 text-sm">
                     <span>المواضيع:</span>
@@ -335,9 +327,11 @@ const OnlineCreatePage: React.FC = () => {
                           {player.name} {player.isHost && '(أنت)'}
                         </span>
                       </div>
-                      <span className="text-white/40 text-xs">
-                        {idx % 2 === 0 ? 'الفريق 1' : 'الفريق 2'}
-                      </span>
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: PLAYER_COLORS[idx % PLAYER_COLORS.length] }}
+                        title={`اللاعب ${idx + 1}`}
+                      />
                     </div>
                   ))
                 )}
@@ -356,30 +350,6 @@ const OnlineCreatePage: React.FC = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Team Names */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-white/60 text-sm block mb-2">اسم الفريق الأول (الأزرق)</label>
-                      <input
-                        type="text"
-                        value={team1Name}
-                        onChange={(e) => setTeam1Name(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg bg-blue-900/40 text-white border border-blue-500/50 focus:border-blue-500"
-                        dir="rtl"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white/60 text-sm block mb-2">اسم الفريق الثاني (الأحمر)</label>
-                      <input
-                        type="text"
-                        value={team2Name}
-                        onChange={(e) => setTeam2Name(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg bg-red-900/40 text-white border border-red-500/50 focus:border-red-500"
-                        dir="rtl"
-                      />
-                    </div>
-                  </div>
-
                   {/* Subjects */}
                   <div>
                     <div className="flex justify-between items-center mb-2">

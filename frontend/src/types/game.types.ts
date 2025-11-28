@@ -3,13 +3,14 @@ import { ExtraSauce } from './power.types';
 
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'finished';
 
-export type TeamRole = 'subject_picker' | 'type_picker';
+export type PlayerRole = 'subject_picker' | 'type_picker';
 
-export interface Team {
+export interface Player {
   id: string;
   name: string;
   score: number;
-  role: TeamRole;
+  role?: PlayerRole;
+  color?: string;
 }
 
 export interface Round {
@@ -19,7 +20,7 @@ export interface Round {
   questionType?: QuestionType;
   question?: Question;
   extraSauce?: ExtraSauce;
-  currentTeamId: string;
+  currentPlayerId: string;
   timeRemaining: number;
   startedAt?: Date;
   answeredAt?: Date;
@@ -30,7 +31,7 @@ export interface Round {
 export interface GameState {
   id: string;
   status: GameStatus;
-  teams: Team[];
+  players: Player[];
   currentRound: number;
   rounds: Round[];
   extraSauceEnabled: boolean;

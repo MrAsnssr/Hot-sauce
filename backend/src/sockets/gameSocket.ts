@@ -7,15 +7,13 @@ interface GameRoom {
   gameId: string;
   sockets: Set<string>;
   currentPhase?: 'pick_subject' | 'pick_type' | 'question' | 'results';
-  subjectPickerTeamId?: string;
   selectedSubjectId?: string;
   selectedTypeId?: string;
-  votes?: Record<string, Record<string, string>>; // {teamId: {playerId: optionId}}
-  lockedAnswers?: Record<string, { optionId: string; timestamp: number }>; // {teamId: {optionId, timestamp}}
+  playerAnswers?: Record<string, { optionId: string; timestamp: number }>; // {playerId: {optionId, timestamp}}
   currentQuestion?: any;
-  teams?: any[];
-  firstPickerIndex?: number; // Which team picks first
-  firstPickIsSubject?: boolean; // Whether first pick is subject (true) or type (false)
+  players?: any[];
+  pickerIndex?: number; // Which player picks (rotates for subject/type)
+  pickPhase?: 'subject' | 'type'; // What they're picking
 }
 
 const gameRooms = new Map<string, GameRoom>();
@@ -74,22 +72,26 @@ export const setupGameSocket = (io: Server) => {
           isHost 
         });
         
-        // If game is already active/configured, send state to the joiner
-        if (gameRooms.has(gameId)) {
-          const room = gameRooms.get(gameId)!;
-          // Send teams if available (implies game started or configured)
-          if (room.teams && room.teams.length > 0) {
-             socket.emit('game-started', { teams: room.teams });
+          // If game is already active/configured, send state to the joiner
+          if (gameRooms.has(gameId)) {
+            const room = gameRooms.get(gameId)!;
+            // Send players if available (implies game started or configured)
+            if (room.players && room.players.length > 0) {
+               socket.emit('game-started', { 
+                 players: room.players,
+                 pickerIndex: room.pickerIndex,
+                 pickPhase: room.pickPhase,
+               });
+            }
+            // Send current phase
+            if (room.currentPhase) {
+               socket.emit('game-phase-changed', { phase: room.currentPhase });
+            }
+            // Send current question
+            if (room.currentQuestion) {
+               socket.emit('question-loaded', { question: room.currentQuestion });
+            }
           }
-          // Send current phase
-          if (room.currentPhase) {
-             socket.emit('game-phase-changed', { phase: room.currentPhase });
-          }
-          // Send current question
-          if (room.currentQuestion) {
-             socket.emit('question-loaded', { question: room.currentQuestion });
-          }
-        }
 
         console.log(`🔵 [BACKEND] Emitted player-joined to room ${gameId}`);
         
@@ -109,14 +111,15 @@ export const setupGameSocket = (io: Server) => {
       if (gameId) {
         const room = gameRooms.get(gameId);
         if (room) {
-          // Store teams in room for game logic
-          if (config.teams) {
-            room.teams = config.teams;
-            // Initialize subject picker to first team
-            if (!room.subjectPickerTeamId && config.teams.length > 0) {
-              room.subjectPickerTeamId = config.teams[0].id;
-            }
+        // Store players in room for game logic
+        if (config.players) {
+          room.players = config.players;
+          // Initialize picker to first player
+          if (room.pickerIndex === undefined && config.players.length > 0) {
+            room.pickerIndex = 0;
+            room.pickPhase = 'subject';
           }
+        }
         }
         console.log(`🔵 [BACKEND] Broadcasting game config to room ${gameId}`);
         console.log(`🔵 [BACKEND] Config players count:`, config.players?.length || 0);
@@ -152,24 +155,23 @@ export const setupGameSocket = (io: Server) => {
 
     // ============ NEW GAME FLOW EVENTS ============
     
-    // Start game - initialize teams
-    socket.on('start-game', (data: { gameId: string; teams: any[] }) => {
-      const { gameId, teams } = data;
+    // Start game - initialize players
+    socket.on('start-game', (data: { gameId: string; players: any[] }) => {
+      const { gameId, players } = data;
       const room = gameRooms.get(gameId);
       if (room) {
-        room.teams = teams.map((t: any) => ({ ...t, score: 0 }));
-        // Initialize picker state: first team picks subject first
-        room.firstPickerIndex = 0;
-        room.firstPickIsSubject = true;
-        room.subjectPickerTeamId = teams[0]?.id;
+        room.players = players.map((p: any) => ({ ...p, score: 0 }));
+        // Initialize picker state: first player picks subject first
+        room.pickerIndex = 0;
+        room.pickPhase = 'subject';
         room.currentPhase = 'pick_subject';
-        console.log(`🔵 [BACKEND] Game started for room ${gameId} with ${teams.length} teams`);
+        console.log(`🔵 [BACKEND] Game started for room ${gameId} with ${players.length} players`);
         console.log(`🔵 [BACKEND] Broadcasting game-started to all ${room.sockets.size} sockets in room ${gameId}`);
         // Broadcast to ALL players in the room (including host)
         io.to(gameId).emit('game-started', { 
-          teams: room.teams,
-          firstPickerIndex: room.firstPickerIndex,
-          firstPickIsSubject: room.firstPickIsSubject,
+          players: room.players,
+          pickerIndex: room.pickerIndex,
+          pickPhase: room.pickPhase,
         });
         console.log(`🔵 [BACKEND] game-started event broadcasted`);
       } else {
@@ -187,6 +189,17 @@ export const setupGameSocket = (io: Server) => {
       }
     });
 
+    // Update picker
+    socket.on('update-picker', (data: { gameId: string; pickerIndex: number; pickPhase: 'subject' | 'type' }) => {
+      const { gameId, pickerIndex, pickPhase } = data;
+      const room = gameRooms.get(gameId);
+      if (room) {
+        room.pickerIndex = pickerIndex;
+        room.pickPhase = pickPhase;
+        io.to(gameId).emit('picker-updated', { pickerIndex, pickPhase });
+      }
+    });
+
     // Select subject
     socket.on('select-subject', (data: { gameId: string; subjectId: string }) => {
       const { gameId, subjectId } = data;
@@ -196,10 +209,17 @@ export const setupGameSocket = (io: Server) => {
         console.log(`🔵 [BACKEND] Subject selected: ${subjectId} for room ${gameId}`);
         io.to(gameId).emit('subject-selected', { subjectId });
 
+        // Move to next player to pick type
+        if (room.players && room.players.length > 0) {
+          room.pickerIndex = ((room.pickerIndex || 0) + 1) % room.players.length;
+          room.pickPhase = 'type';
+        }
+        
         // Automatically advance to type picking phase
         console.log(`🔵 [BACKEND] Auto-advancing to pick_type phase for room ${gameId}`);
         room.currentPhase = 'pick_type';
         io.to(gameId).emit('game-phase-changed', { phase: 'pick_type' });
+        io.to(gameId).emit('picker-updated', { pickerIndex: room.pickerIndex, pickPhase: room.pickPhase });
       }
     });
 
@@ -274,8 +294,7 @@ export const setupGameSocket = (io: Server) => {
         questionObj.id = questionObj._id.toString();
         
         room.currentQuestion = questionObj;
-        room.votes = {};
-        room.lockedAnswers = {};
+        room.playerAnswers = {};
         
         console.log(`🔵 [BACKEND] Question loaded for room ${gameId}`);
         io.to(gameId).emit('question-loaded', { question: questionObj });
@@ -288,145 +307,96 @@ export const setupGameSocket = (io: Server) => {
       }
     });
 
-    // Player vote
-    socket.on('player-vote', (data: { gameId: string; teamId: string; playerId: string; optionId: string }) => {
-      const { gameId, teamId, playerId, optionId } = data;
+    // Player answer
+    socket.on('player-answer', (data: { gameId: string; playerId: string; optionId: string }) => {
+      const { gameId, playerId, optionId } = data;
       const room = gameRooms.get(gameId);
-      if (!room || !room.votes) return;
+      if (!room || !room.playerAnswers) return;
 
-      if (!room.votes[teamId]) {
-        room.votes[teamId] = {};
-      }
+      // Store player's answer
+      const timestamp = Date.now();
+      room.playerAnswers[playerId] = { optionId, timestamp };
       
-      room.votes[teamId][playerId] = optionId;
-      
-      // Broadcast vote update to team members
-      io.to(gameId).emit('vote-updated', { teamId, votes: room.votes[teamId] });
-      
-      // Check if majority reached
-      const teamVotes = room.votes[teamId];
-      const voteCounts: Record<string, number> = {};
-      Object.values(teamVotes).forEach(optId => {
-        voteCounts[optId] = (voteCounts[optId] || 0) + 1;
-      });
-      
-      const totalVotes = Object.keys(teamVotes).length;
-      if (totalVotes === 0) return; // No votes yet
-      
-      const voteValues = Object.values(voteCounts);
-      if (voteValues.length === 0) return; // No vote counts
-      
-      const maxVotes = Math.max(...voteValues);
-      const majority = Math.ceil(totalVotes / 2);
-      
-      // If majority reached and answer not locked yet
-      if (maxVotes >= majority && !room.lockedAnswers?.[teamId]) {
-        const winners = Object.keys(voteCounts).filter(opt => voteCounts[opt] === maxVotes);
-        let winningOption = winners[0];
-        
-        // First player breaks tie
-        if (winners.length > 1) {
-          const firstVote = Object.entries(teamVotes).find(([pid, optId]) => winners.includes(optId as string));
-          winningOption = firstVote ? (firstVote[1] as string) : winners[0];
-        }
-        
-        const timestamp = Date.now();
-        if (!room.lockedAnswers) room.lockedAnswers = {};
-        room.lockedAnswers[teamId] = { optionId: winningOption, timestamp };
-        
-        console.log(`🔵 [BACKEND] Team ${teamId} locked answer: ${winningOption}`);
-        io.to(gameId).emit('team-answer-locked', { teamId, optionId: winningOption, timestamp });
-      }
+      console.log(`🔵 [BACKEND] Player ${playerId} answered: ${optionId}`);
+      io.to(gameId).emit('player-answer-locked', { playerId, optionId, timestamp });
     });
 
     // Reveal results
     socket.on('reveal-results', (data: { gameId: string }) => {
       const { gameId } = data;
       const room = gameRooms.get(gameId);
-      if (!room || !room.currentQuestion || !room.lockedAnswers) return;
+      if (!room || !room.currentQuestion || !room.playerAnswers) return;
 
       const correctOptionId = room.currentQuestion.options?.find((o: any) => o.isCorrect)?.id;
       const scores: Record<string, number> = {};
-      const teamAnswers: Record<string, { optionId: string; timestamp: number }> = {};
+      const playerAnswers: Record<string, { optionId: string; timestamp: number }> = {};
       
       // Initialize scores
-      if (room.teams) {
-        room.teams.forEach((team: any) => {
-          scores[team.id] = team.score || 0;
-          if (room.lockedAnswers?.[team.id]) {
-            teamAnswers[team.id] = room.lockedAnswers[team.id];
+      if (room.players) {
+        room.players.forEach((player: any) => {
+          scores[player.id] = player.score || 0;
+          if (room.playerAnswers?.[player.id]) {
+            playerAnswers[player.id] = room.playerAnswers[player.id];
           }
         });
       }
 
       // Calculate scores
-      const correctTeams: Array<{ teamId: string; timestamp: number }> = [];
+      const correctPlayers: Array<{ playerId: string; timestamp: number }> = [];
       
-      Object.entries(room.lockedAnswers || {}).forEach(([teamId, answer]) => {
+      Object.entries(room.playerAnswers || {}).forEach(([playerId, answer]) => {
         if (answer.optionId === correctOptionId) {
-          correctTeams.push({ teamId, timestamp: answer.timestamp });
-          scores[teamId] = (scores[teamId] || 0) + (room.currentQuestion?.points || 10);
+          correctPlayers.push({ playerId, timestamp: answer.timestamp });
+          scores[playerId] = (scores[playerId] || 0) + (room.currentQuestion?.points || 10);
         }
       });
 
-      // Award speed bonus to fastest correct team
-      if (correctTeams.length > 1) {
-        correctTeams.sort((a, b) => a.timestamp - b.timestamp);
-        const fastestTeam = correctTeams[0].teamId;
-        scores[fastestTeam] = (scores[fastestTeam] || 0) + 5;
-      } else if (correctTeams.length === 1) {
-        // Single correct team gets base points only (already added above)
+      // Award speed bonus to fastest correct player
+      if (correctPlayers.length > 1) {
+        correctPlayers.sort((a, b) => a.timestamp - b.timestamp);
+        const fastestPlayer = correctPlayers[0].playerId;
+        scores[fastestPlayer] = (scores[fastestPlayer] || 0) + 5;
       }
 
-      // Update room teams scores
-      if (room.teams) {
-        room.teams.forEach((team: any) => {
-          team.score = scores[team.id] || team.score || 0;
+      // Update room players scores
+      if (room.players) {
+        room.players.forEach((player: any) => {
+          player.score = scores[player.id] || player.score || 0;
         });
       }
 
       console.log(`🔵 [BACKEND] Results revealed for room ${gameId}`);
-      io.to(gameId).emit('results-revealed', { teamAnswers, scores });
+      io.to(gameId).emit('results-revealed', { playerAnswers, scores });
     });
 
     // Round ended
     socket.on('round-ended', (data: { gameId: string }) => {
       const { gameId } = data;
       const room = gameRooms.get(gameId);
-      if (room && room.teams && room.teams.length > 0) {
+      if (room && room.players && room.players.length > 0) {
         // Clear round data
         room.selectedSubjectId = undefined;
         room.selectedTypeId = undefined;
         room.currentQuestion = undefined;
-        room.votes = {};
-        room.lockedAnswers = {};
+        room.playerAnswers = {};
         
-        // Rotate picker: rotate ONLY the team index. Keep picking subject first.
-        if (room.firstPickerIndex !== undefined) {
-          room.firstPickerIndex = (room.firstPickerIndex + 1) % room.teams.length;
-          // room.firstPickIsSubject = true; // Always true to ensure rotation works
+        // Rotate picker: move to next player for subject picking
+        if (room.pickerIndex !== undefined) {
+          room.pickerIndex = (room.pickerIndex + 1) % room.players.length;
         } else {
           // Initialize if not set
-          room.firstPickerIndex = 0;
-          room.firstPickIsSubject = true;
+          room.pickerIndex = 0;
         }
         
-        // Ensure firstPickIsSubject is always true for proper rotation
-        room.firstPickIsSubject = true;
-        
-        // Determine which team picks what
-        const secondPickerIndex = (room.firstPickerIndex! + 1) % room.teams.length;
-        const subjectPickerIndex = room.firstPickIsSubject ? room.firstPickerIndex! : secondPickerIndex;
-        room.subjectPickerTeamId = room.teams[subjectPickerIndex]?.id;
+        room.pickPhase = 'subject';
         room.currentPhase = 'pick_subject'; // Always start with picking subject
         
         console.log(`🔵 [BACKEND] Round ended for room ${gameId}`);
-        console.log(`🔵 [BACKEND] Next: Team ${room.firstPickerIndex} picks subject first, Team ${secondPickerIndex} picks type`);
+        console.log(`🔵 [BACKEND] Next: Player ${room.pickerIndex} picks subject`);
         io.to(gameId).emit('round-ended', {
-          subjectPickerTeamId: room.subjectPickerTeamId,
-          teams: room.teams,
-          firstPickerIndex: room.firstPickerIndex,
-          firstPickIsSubject: room.firstPickIsSubject,
+          players: room.players,
+          pickerIndex: room.pickerIndex,
+          pickPhase: room.pickPhase,
         });
       }
     });
@@ -506,7 +476,9 @@ export const setupGameSocket = (io: Server) => {
               round.isCorrect = payload.isCorrect;
               round.answeredAt = new Date();
               if (payload.isCorrect) {
-                const team = game.teams.find(t => t.id === payload.teamId);
+                // Note: Game model still uses teams, but we're using players in memory
+                // For now, we'll update the team that matches the player
+                const team = game.teams.find((t: any) => t.id === payload.teamId || t.players?.some((p: any) => p.id === payload.playerId));
                 if (team) {
                   team.score += payload.points || game.pointDistribution.correct;
                   round.pointsAwarded = payload.points || game.pointDistribution.correct;

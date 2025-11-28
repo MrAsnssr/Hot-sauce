@@ -6,12 +6,11 @@ import api from '../utils/api';
 import { io, Socket } from 'socket.io-client';
 
 // ============ TYPES ============
-interface Team {
+interface Player {
   id: string;
   name: string;
   color: string;
   score: number;
-  players: string[];
 }
 
 interface QuestionOption {
@@ -44,12 +43,11 @@ const OnlineGamePage: React.FC = () => {
   const [roomCode, setRoomCode] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [playerId, setPlayerId] = useState('');
-  const [playerTeamId, setPlayerTeamId] = useState<string | null>(null);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [round, setRound] = useState(1);
-  const [firstPickerIndex, setFirstPickerIndex] = useState(0); // Which team picks first
-  const [firstPickIsSubject, setFirstPickIsSubject] = useState(true); // Whether first pick is subject or type
+  const [pickerIndex, setPickerIndex] = useState(0); // Which player picks (rotates for subject/type)
+  const [pickPhase, setPickPhase] = useState<'subject' | 'type'>('subject'); // What they're picking
 
   // Current round state
   const [phase, setPhase] = useState<GamePhase>('pick_subject');
@@ -57,9 +55,8 @@ const OnlineGamePage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   
-  // Voting state
-  const [playerVotes, setPlayerVotes] = useState<Record<string, string>>({}); // {playerId: optionId}
-  const [teamAnswers, setTeamAnswers] = useState<Record<string, { optionId: string; timestamp: number }>>({});
+  // Answer state
+  const [playerAnswers, setPlayerAnswers] = useState<Record<string, { optionId: string; timestamp: number }>>({});
   const [timer, setTimer] = useState(30);
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -87,16 +84,8 @@ const OnlineGamePage: React.FC = () => {
         const parsed = JSON.parse(gameData);
         // Only use session data if it matches current room
         if (parsed.roomCode === code) {
-          if (parsed.teams) {
-             setTeams(parsed.teams.map((t: any) => ({ ...t, score: 0 })));
-             
-             // Find player team
-             const playerTeam = parsed.teams.find((t: any) => 
-               t.players?.some((p: any) => p.name === pId || p.id === pId)
-             );
-             if (playerTeam) {
-               setPlayerTeamId(playerTeam.id);
-             }
+          if (parsed.players) {
+             setPlayers(parsed.players.map((p: any) => ({ ...p, score: 0 })));
           }
         }
       } catch (e) {
@@ -155,9 +144,9 @@ const OnlineGamePage: React.FC = () => {
         if (gameData) {
            try {
              const parsed = JSON.parse(gameData);
-             if (parsed.teams && parsed.roomCode === code) {
-               // Re-sync teams if backend lost them
-               newSocket.emit('update-game-config', { teams: parsed.teams });
+             if (parsed.players && parsed.roomCode === code) {
+               // Re-sync players if backend lost them
+               newSocket.emit('update-game-config', { players: parsed.players });
              }
            } catch(e) {
              console.error('Error parsing game data:', e);
@@ -178,35 +167,25 @@ const OnlineGamePage: React.FC = () => {
       }
     });
 
-    newSocket.on('game-started', (data: { teams: Team[]; firstPickerIndex?: number; firstPickIsSubject?: boolean }) => {
+    newSocket.on('game-started', (data: { players: Player[]; pickerIndex?: number; pickPhase?: 'subject' | 'type' }) => {
       // This might happen if late joiner or re-sync
-      if (data.teams) {
-        setTeams(data.teams);
-        // Recalculate my team
-        const playerTeam = data.teams.find((t: any) => 
-            t.players?.some((p: any) => p.name === pId || p.id === pId)
-        );
-        if (playerTeam) setPlayerTeamId(playerTeam.id);
+      if (data.players) {
+        setPlayers(data.players);
       }
       // Initialize picker state
-      if (data.firstPickerIndex !== undefined) {
-        setFirstPickerIndex(data.firstPickerIndex);
+      if (data.pickerIndex !== undefined) {
+        setPickerIndex(data.pickerIndex);
       }
-      if (data.firstPickIsSubject !== undefined) {
-        setFirstPickIsSubject(data.firstPickIsSubject);
-        // Set initial phase based on what the first picker picks
-        setPhase(data.firstPickIsSubject ? 'pick_subject' : 'pick_type');
+      if (data.pickPhase !== undefined) {
+        setPickPhase(data.pickPhase);
+        setPhase(data.pickPhase === 'subject' ? 'pick_subject' : 'pick_type');
       }
     });
 
     // Handle receiving config update (e.g. from lobby or re-sync)
     newSocket.on('game-config-updated', (config: any) => {
-      if (config.teams) {
-        setTeams(config.teams);
-        const playerTeam = config.teams.find((t: any) => 
-            t.players?.some((p: any) => p.name === pId || p.id === pId)
-        );
-        if (playerTeam) setPlayerTeamId(playerTeam.id);
+      if (config.players) {
+        setPlayers(config.players);
       }
     });
 
@@ -266,79 +245,55 @@ const OnlineGamePage: React.FC = () => {
         timeLimit: q.timeLimit || 30,
       });
       setTimer(q.timeLimit || 30);
-      setPlayerVotes({});
-      setTeamAnswers({});
+      setPlayerAnswers({});
       setPhase('question');
     });
 
-    newSocket.on('vote-updated', (data: { teamId: string; votes: Record<string, string> }) => {
-      setPlayerVotes(prev => {
-        // Only update if it's relevant (my team, or if we want to show all votes?)
-        // Currently we only track my team's votes in local state for logic, 
-        // but let's just merge. Logic uses playerTeamId to filter display.
-        return { ...prev, ...data.votes };
-      });
-    });
-
-    newSocket.on('team-answer-locked', (data: { teamId: string; optionId: string; timestamp: number }) => {
-      setTeamAnswers(prev => ({
+    newSocket.on('player-answer-locked', (data: { playerId: string; optionId: string; timestamp: number }) => {
+      setPlayerAnswers(prev => ({
         ...prev,
-        [data.teamId]: { optionId: data.optionId, timestamp: data.timestamp },
+        [data.playerId]: { optionId: data.optionId, timestamp: data.timestamp },
       }));
     });
 
     newSocket.on('results-revealed', (data: { 
-      teamAnswers: Record<string, { optionId: string; timestamp: number }>;
+      playerAnswers: Record<string, { optionId: string; timestamp: number }>;
       scores: Record<string, number>;
     }) => {
-      setTeamAnswers(data.teamAnswers);
-      setTeams(prev => prev.map(t => ({
-        ...t,
-        score: data.scores[t.id] || t.score,
+      setPlayerAnswers(data.playerAnswers);
+      setPlayers(prev => prev.map(p => ({
+        ...p,
+        score: data.scores[p.id] || p.score,
       })));
       setPhase('results');
     });
 
-    newSocket.on('round-ended', (data: { subjectPickerTeamId?: string; teams?: Team[]; firstPickerIndex?: number; firstPickIsSubject?: boolean }) => {
+    newSocket.on('round-ended', (data: { players?: Player[]; pickerIndex?: number; pickPhase?: 'subject' | 'type' }) => {
       console.log('🔵 [FRONTEND] Round ended event received:', data);
 
-      // Update teams if provided
-      if (data.teams) {
-        setTeams(data.teams);
+      // Update players if provided
+      if (data.players) {
+        setPlayers(data.players);
       }
 
-      // Update picker state from backend if provided, otherwise rotate locally
-      if (data.firstPickerIndex !== undefined) {
-        setFirstPickerIndex(data.firstPickerIndex);
-        // Backend always sends firstPickIsSubject = true now
-        if (data.firstPickIsSubject !== undefined) {
-          setFirstPickIsSubject(data.firstPickIsSubject);
-        } else {
-          setFirstPickIsSubject(true); // Ensure it's true
-        }
-        console.log('🔵 [FRONTEND] Updated picker state:', {
-          firstPickerIndex: data.firstPickerIndex,
-          firstPickIsSubject: data.firstPickIsSubject || true
-        });
+      // Update picker state from backend if provided
+      if (data.pickerIndex !== undefined) {
+        setPickerIndex(data.pickerIndex);
+      }
+      if (data.pickPhase !== undefined) {
+        setPickPhase(data.pickPhase);
+        setPhase(data.pickPhase === 'subject' ? 'pick_subject' : 'pick_type');
       } else {
-        // Fallback: rotate locally (shouldn't happen)
-        console.warn('🔵 [FRONTEND] No firstPickerIndex from backend, rotating locally');
-        setFirstPickerIndex(prev => {
-          const next = (prev + 1) % (data.teams?.length || teams.length || 2);
-          if (next === 0) setRound(r => r + 1);
-          return next;
-        });
-        setFirstPickIsSubject(true);
+        // Default to subject picking
+        setPickPhase('subject');
+        setPhase('pick_subject');
       }
 
       setSelectedSubject(null);
       setSelectedType(null);
       setCurrentQuestion(null);
-      setPlayerVotes({});
-      setTeamAnswers({});
-      // Always start with pick_subject
-      setPhase('pick_subject');
-
+      setPlayerAnswers({});
+      
       console.log('🔵 [FRONTEND] Round ended, phase set to pick_subject');
     });
 
@@ -392,31 +347,21 @@ const OnlineGamePage: React.FC = () => {
   }, [phase, socket, isHost, roomCode]);
 
   // ============ GAME LOGIC ============
-  // Determine which team picks what: firstPickerIndex picks subject, next team picks type
-  // Since firstPickIsSubject is always true now, first team always picks subject first
-  const secondPickerIndex = (firstPickerIndex + 1) % teams.length;
-  const subjectPickerIndex = firstPickerIndex; // Always the first picker picks subject
-  const typePickerIndex = secondPickerIndex; // Second team picks type
-
-  const subjectPickerTeam = teams[subjectPickerIndex];
-  const typePickerTeam = teams[typePickerIndex];
+  // Determine which player picks what - rotates through players
+  const currentPicker = players[pickerIndex];
 
   // Debug logging
   console.log('🔵 [FRONTEND] Game logic:', {
-    firstPickerIndex,
-    firstPickIsSubject,
+    pickerIndex,
+    pickPhase,
     phase,
-    subjectPickerIndex,
-    typePickerIndex,
-    subjectPickerTeam: subjectPickerTeam?.name,
-    typePickerTeam: typePickerTeam?.name
+    currentPicker: currentPicker?.name
   });
 
   const handleSelectSubject = (subjectId: string) => {
-    console.log('🔵 [FRONTEND] handleSelectSubject called:', { subjectId, phase, isHost, subjectPickerTeam: subjectPickerTeam?.name });
+    console.log('🔵 [FRONTEND] handleSelectSubject called:', { subjectId, phase, isHost, currentPicker: currentPicker?.name });
 
-    // Host can pick, but only when it's the subject picker team's turn
-    // Check that we're in the right phase AND it's the subject picker team's turn
+    // Host can pick, but only when it's the current picker's turn
     if (!isHost) {
       console.log('🔵 [FRONTEND] handleSelectSubject blocked: not host');
       return;
@@ -425,9 +370,8 @@ const OnlineGamePage: React.FC = () => {
       console.log('🔵 [FRONTEND] handleSelectSubject blocked: wrong phase', phase);
       return;
     }
-    // Verify it's actually the subject picker team's turn (host acts on behalf of that team)
-    if (!subjectPickerTeam) {
-      console.log('🔵 [FRONTEND] handleSelectSubject blocked: no subjectPickerTeam');
+    if (!currentPicker) {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: no currentPicker');
       return;
     }
 
@@ -435,18 +379,20 @@ const OnlineGamePage: React.FC = () => {
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
-      // Subject is always picked first now (firstPickIsSubject is always true)
-      console.log('🔵 [FRONTEND] Emitting game-phase-changed to pick_type');
+      // Move to next player to pick type
+      const nextPickerIndex = (pickerIndex + 1) % players.length;
+      socket.emit('update-picker', { gameId: roomCode, pickerIndex: nextPickerIndex, pickPhase: 'type' });
+      setPickerIndex(nextPickerIndex);
+      setPickPhase('type');
       socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
       setPhase('pick_type');
     }
   };
 
   const handleSelectType = (typeId: string) => {
-    console.log('🔵 [FRONTEND] handleSelectType called:', { typeId, phase, isHost, typePickerTeam: typePickerTeam?.name });
+    console.log('🔵 [FRONTEND] handleSelectType called:', { typeId, phase, isHost, currentPicker: currentPicker?.name });
 
-    // Host can pick, but only when it's the type picker team's turn
-    // Check that we're in the right phase AND it's the type picker team's turn
+    // Host can pick, but only when it's the current picker's turn
     if (!isHost) {
       console.log('🔵 [FRONTEND] handleSelectType blocked: not host');
       return;
@@ -455,9 +401,8 @@ const OnlineGamePage: React.FC = () => {
       console.log('🔵 [FRONTEND] handleSelectType blocked: wrong phase', phase);
       return;
     }
-    // Verify it's actually the type picker team's turn (host acts on behalf of that team)
-    if (!typePickerTeam) {
-      console.log('🔵 [FRONTEND] handleSelectType blocked: no typePickerTeam');
+    if (!currentPicker) {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: no currentPicker');
       return;
     }
 
@@ -476,19 +421,21 @@ const OnlineGamePage: React.FC = () => {
     }
   };
 
-  const handleVote = (optionId: string) => {
-    if (!playerTeamId || phase !== 'question' || !socket) return;
+  const handleAnswer = (optionId: string) => {
+    if (phase !== 'question' || !socket) return;
     
-    // Prevent duplicate votes
-    if (playerVotes[playerId] === optionId) return;
+    // Prevent duplicate answers
+    if (playerAnswers[playerId]) return;
     
-    socket.emit('player-vote', {
+    socket.emit('player-answer', {
       gameId: roomCode,
-      teamId: playerTeamId,
       playerId: playerId,
       optionId,
     });
-    setPlayerVotes(prev => ({ ...prev, [playerId]: optionId }));
+    setPlayerAnswers(prev => ({ 
+      ...prev, 
+      [playerId]: { optionId, timestamp: Date.now() } 
+    }));
   };
 
   const handleRevealResults = () => {
@@ -505,38 +452,7 @@ const OnlineGamePage: React.FC = () => {
     }
   };
 
-  // Calculate team's answer from votes
-  const getTeamAnswer = (teamId: string): string | null => {
-    if (teamAnswers[teamId]) {
-      return teamAnswers[teamId].optionId;
-    }
-    // Calculate from votes (majority, or first if tie)
-    if (!playerTeamId || teamId !== playerTeamId) return null;
-    
-    const voteCounts: Record<string, number> = {};
-    Object.values(playerVotes).forEach(optId => {
-      if (optId) {
-        voteCounts[optId] = (voteCounts[optId] || 0) + 1;
-      }
-    });
-    
-    const voteValues = Object.values(voteCounts);
-    if (voteValues.length === 0) return null;
-    
-    const maxVotes = Math.max(...voteValues);
-    const winners = Object.keys(voteCounts).filter(opt => voteCounts[opt] === maxVotes);
-    
-    // First player breaks tie
-    if (winners.length > 1) {
-      const firstVote = Object.entries(playerVotes).find(([pid, optId]) => optId && winners.includes(optId));
-      return firstVote ? firstVote[1] : winners[0];
-    }
-    
-    return winners[0] || null;
-  };
-
-  const myVote = playerVotes[playerId];
-  const myTeamAnswer = playerTeamId ? getTeamAnswer(playerTeamId) : null;
+  const myAnswer = playerAnswers[playerId]?.optionId;
 
   // ============ HELPERS ============
   const shuffleArray = <T,>(arr: T[]): T[] => {
@@ -549,7 +465,7 @@ const OnlineGamePage: React.FC = () => {
   };
 
   // ============ RENDER ============
-  if (teams.length === 0) {
+  if (players.length === 0) {
     return (
       <WoodyBackground>
         <div className="min-h-screen flex items-center justify-center">
@@ -587,20 +503,19 @@ const OnlineGamePage: React.FC = () => {
           </div>
 
           {/* Scoreboard */}
-          <div className="flex justify-center gap-6 mb-6">
-            {teams.map((team, i) => {
-              const isPicking = (phase === 'pick_subject' && i === subjectPickerIndex) || 
-                                (phase === 'pick_type' && i === typePickerIndex);
+          <div className="flex flex-wrap justify-center gap-4 mb-6">
+            {players.map((player, i) => {
+              const isPicking = i === pickerIndex && (phase === 'pick_subject' || phase === 'pick_type');
               return (
                 <div
-                  key={team.id}
+                  key={player.id}
                   className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
                     isPicking ? 'ring-4 ring-yellow-400 scale-105' : ''
                   }`}
-                  style={{ backgroundColor: team.color }}
+                  style={{ backgroundColor: player.color }}
                 >
-                  <div className="text-white font-bold">{team.name}</div>
-                  <div className="text-4xl font-bold text-white">{team.score}</div>
+                  <div className="text-white font-bold">{player.name}</div>
+                  <div className="text-4xl font-bold text-white">{player.score}</div>
                 </div>
               );
             })}
@@ -614,11 +529,11 @@ const OnlineGamePage: React.FC = () => {
               <>
                 <div className="text-center mb-6">
                   <span className="text-white text-xl">
-                    <strong style={{ color: subjectPickerTeam?.color }}>{subjectPickerTeam?.name}</strong> يختار الموضوع
+                    <strong style={{ color: currentPicker?.color }}>{currentPicker?.name}</strong> يختار الموضوع
                   </span>
                 </div>
                 
-                {isHost && subjectPickerTeam && phase === 'pick_subject' ? (
+                {isHost && currentPicker && phase === 'pick_subject' ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {subjects.map(subject => (
                       <button
@@ -633,7 +548,7 @@ const OnlineGamePage: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-4xl mb-4">⏳</div>
-                    <p className="text-white text-xl">في انتظار {subjectPickerTeam?.name} لاختيار الموضوع...</p>
+                    <p className="text-white text-xl">في انتظار {currentPicker?.name} لاختيار الموضوع...</p>
                     {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
                   </div>
                 )}
@@ -645,7 +560,7 @@ const OnlineGamePage: React.FC = () => {
               <>
                 <div className="text-center mb-6">
                   <span className="text-white text-xl">
-                    <strong style={{ color: typePickerTeam?.color }}>{typePickerTeam?.name}</strong> يختار نوع السؤال
+                    <strong style={{ color: currentPicker?.color }}>{currentPicker?.name}</strong> يختار نوع السؤال
                   </span>
                   {selectedSubject && (
                     <p className="text-white/60 text-sm mt-2">
@@ -654,7 +569,7 @@ const OnlineGamePage: React.FC = () => {
                   )}
                 </div>
                 
-                {isHost && typePickerTeam && phase === 'pick_type' ? (
+                {isHost && currentPicker && phase === 'pick_type' ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {HARDCODED_QUESTION_TYPES.map(type => (
                       <button
@@ -670,7 +585,7 @@ const OnlineGamePage: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-4xl mb-4">⏳</div>
-                    <p className="text-white text-xl">في انتظار {typePickerTeam?.name} لاختيار نوع السؤال...</p>
+                    <p className="text-white text-xl">في انتظار {currentPicker?.name} لاختيار نوع السؤال...</p>
                     {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
                   </div>
                 )}
@@ -692,45 +607,37 @@ const OnlineGamePage: React.FC = () => {
                   {currentQuestion.text}
                 </h2>
 
-                {/* Voting (only show if player is on a team) */}
-                {playerTeamId && (
-                  <div className="mb-6">
-                    <div
-                      className="text-center py-2 rounded-lg mb-3"
-                      style={{ backgroundColor: `${teams.find(t => t.id === playerTeamId)?.color}60` }}
-                    >
-                      <span className="text-white font-bold">فريقك: {teams.find(t => t.id === playerTeamId)?.name}</span>
-                      {myTeamAnswer && <span className="text-green-300 mr-2"> ✓ تم الإغلاق</span>}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      {currentQuestion.options.map(opt => {
-                        const selected = myVote === opt.id;
-                        const locked = !!myTeamAnswer;
-                        return (
-                          <button
-                            key={opt.id}
-                            onClick={() => handleVote(opt.id)}
-                            disabled={locked}
-                            className={`p-4 rounded-xl text-white text-lg transition-all ${
-                              selected ? 'bg-blue-600 ring-4 ring-blue-400' :
-                              locked ? 'bg-white/10 opacity-50 cursor-not-allowed' :
-                              'bg-white/20 hover:bg-white/30'
-                            }`}
-                          >
-                            {opt.text}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    
-                    {myVote && !myTeamAnswer && (
-                      <p className="text-white/60 text-sm text-center mt-2">
-                        صوتك: {currentQuestion.options.find(o => o.id === myVote)?.text}
-                      </p>
-                    )}
+                {/* Answering (each player answers individually) */}
+                <div className="mb-6">
+                  <div
+                    className="text-center py-2 rounded-lg mb-3"
+                    style={{ backgroundColor: `${players.find(p => p.id === playerId)?.color || '#3b82f6'}60` }}
+                  >
+                    <span className="text-white font-bold">أنت: {players.find(p => p.id === playerId)?.name}</span>
+                    {myAnswer && <span className="text-green-300 mr-2"> ✓ تم الإجابة</span>}
                   </div>
-                )}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {currentQuestion.options.map(opt => {
+                      const selected = myAnswer === opt.id;
+                      const locked = !!myAnswer;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => handleAnswer(opt.id)}
+                          disabled={locked}
+                          className={`p-4 rounded-xl text-white text-lg transition-all ${
+                            selected ? 'bg-blue-600 ring-4 ring-blue-400' :
+                            locked ? 'bg-white/10 opacity-50 cursor-not-allowed' :
+                            'bg-white/20 hover:bg-white/30'
+                          }`}
+                        >
+                          {opt.text}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Show Results Button (Host only) */}
                 {isHost && (
@@ -761,23 +668,23 @@ const OnlineGamePage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Team Results */}
-                {teams.map(team => {
-                  const answer = teamAnswers[team.id];
+                {/* Player Results */}
+                {players.map(player => {
+                  const answer = playerAnswers[player.id];
                   const selected = answer ? currentQuestion.options?.find(o => o.id === answer.optionId) : null;
                   const correct = selected?.isCorrect;
-                  const isFaster = answer && correct && Object.values(teamAnswers).some(a => 
+                  const isFaster = answer && correct && Object.values(playerAnswers).some(a => 
                     a && a.timestamp < answer.timestamp && 
                     currentQuestion.options?.find(o => o.id === a.optionId)?.isCorrect
                   );
                   
                   return (
                     <div
-                      key={team.id}
+                      key={player.id}
                       className={`mb-3 p-4 rounded-xl ${correct ? 'bg-green-600/30' : 'bg-red-600/30'}`}
                     >
                       <div className="flex justify-between">
-                        <span className="text-white font-bold">{team.name}</span>
+                        <span className="text-white font-bold">{player.name}</span>
                         <span className={correct ? 'text-green-400' : 'text-red-400'}>
                           {!answer ? 'لم يجب ❌' : 
                            correct ? `صحيح ✓ +${currentQuestion.points}${isFaster ? ' (أسرع +5)' : ''}` : 
