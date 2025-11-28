@@ -73,26 +73,33 @@ const OnlineWaitingPage: React.FC = () => {
         isHost: false,
       });
       console.log('Emitted join-game with:', { gameId: roomCode.toUpperCase(), playerName, isHost: false });
+      
+      // Request config after joining
+      setTimeout(() => {
+        newSocket.emit('request-game-config');
+      }, 500);
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
     });
 
-    // Listen for game config updates from host
-    newSocket.on('game-config-updated', (config: any) => {
-      setSelectedSubjects(config.subjects || []);
-      setSelectedTypes(config.questionTypes || []);
-      setExtraSauceEnabled(config.extraSauceEnabled ?? true);
-      setJoinedPlayers(config.players || []);
-      setConfigLoaded(true);
+    newSocket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
     });
 
-    // Request config when connected
-    newSocket.on('connect', () => {
-      setTimeout(() => {
-        newSocket.emit('request-game-config');
-      }, 500);
+    // Listen for game config updates from host
+    newSocket.on('game-config-updated', (config: any) => {
+      try {
+        console.log('Received game config:', config);
+        setSelectedSubjects(config.subjects || []);
+        setSelectedTypes(config.questionTypes || []);
+        setExtraSauceEnabled(config.extraSauceEnabled ?? true);
+        setJoinedPlayers(config.players || []);
+        setConfigLoaded(true);
+      } catch (error) {
+        console.error('Error updating game config:', error);
+      }
     });
 
     // Listen for game start

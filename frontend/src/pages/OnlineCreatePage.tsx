@@ -110,14 +110,17 @@ const OnlineCreatePage: React.FC = () => {
 
     // Listen for config request from players
     newSocket.on('host-send-config', () => {
+      console.log('Host received config request, broadcasting config');
       // Broadcast current game config to all players
-      newSocket.emit('update-game-config', {
+      const config = {
         subjects: selectedSubjects,
         questionTypes: selectedTypes,
         extraSauceEnabled,
         teams,
         players: joinedPlayers,
-      });
+      };
+      console.log('Broadcasting config:', config);
+      newSocket.emit('update-game-config', config);
     });
 
     setSocket(newSocket);
@@ -127,16 +130,18 @@ const OnlineCreatePage: React.FC = () => {
     };
   }, []);
 
-  // Broadcast config when it changes
+    // Broadcast config when it changes
   useEffect(() => {
-    if (socket && socket.connected) {
-      socket.emit('update-game-config', {
+    if (socket && socket.connected && joinedPlayers.length > 0) {
+      const config = {
         subjects: selectedSubjects,
         questionTypes: selectedTypes,
         extraSauceEnabled,
         teams,
         players: joinedPlayers,
-      });
+      };
+      console.log('Broadcasting config update:', config);
+      socket.emit('update-game-config', config);
     }
   }, [selectedSubjects, selectedTypes, extraSauceEnabled, joinedPlayers, socket]);
 

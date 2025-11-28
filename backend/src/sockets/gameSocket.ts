@@ -74,8 +74,9 @@ export const setupGameSocket = (io: Server) => {
     socket.on('update-game-config', (config: any) => {
       const gameId = (socket as any).gameId;
       if (gameId) {
-        // Broadcast to all players except sender
-        socket.to(gameId).emit('game-config-updated', config);
+        console.log(`Broadcasting game config to room ${gameId}`);
+        // Broadcast to all players in room (including sender for testing, but host shouldn't need it)
+        io.to(gameId).emit('game-config-updated', config);
       }
     });
     
