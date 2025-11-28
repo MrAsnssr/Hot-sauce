@@ -45,7 +45,8 @@ const LocalGamePage: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [round, setRound] = useState(1);
-  const [pickingTeamIndex, setPickingTeamIndex] = useState(0);
+  const [firstPickerIndex, setFirstPickerIndex] = useState(0); // Which team picks first
+  const [firstPickIsSubject, setFirstPickIsSubject] = useState(true); // Whether first pick is subject or type
 
   // Current round state
   const [phase, setPhase] = useState<'pick_subject' | 'pick_type' | 'answering' | 'results'>('pick_subject');
@@ -121,21 +122,18 @@ const LocalGamePage: React.FC = () => {
   }, [phase, showResults]);
 
   // ============ GAME LOGIC ============
-  const pickingTeam = teams[pickingTeamIndex];
-  const opposingTeam = teams[(pickingTeamIndex + 1) % teams.length];
+  // Determine which team picks what based on firstPickerIndex and firstPickIsSubject
+  const secondPickerIndex = (firstPickerIndex + 1) % teams.length;
+  const subjectPickerIndex = firstPickIsSubject ? firstPickerIndex : secondPickerIndex;
+  const typePickerIndex = firstPickIsSubject ? secondPickerIndex : firstPickerIndex;
+  
+  const subjectPickerTeam = teams[subjectPickerIndex];
+  const typePickerTeam = teams[typePickerIndex];
 
-  const selectSubject = (subjectId: string) => {
-    setSelectedSubject(subjectId);
-    setPhase('pick_type');
-  };
-
-  const selectType = async (typeId: string) => {
-    if (!selectedSubject) return;
-    
-    setSelectedType(typeId);
+  const loadQuestion = async (subjectId: string, typeId: string) => {
     setLoading(true);
     try {
-      const res = await api.post('/games/temp/question', { subjectId: selectedSubject, questionTypeId: typeId });
+      const res = await api.post('/games/temp/question', { subjectId, questionTypeId: typeId });
       const q = res.data;
       
       // Build options
@@ -170,6 +168,7 @@ const LocalGamePage: React.FC = () => {
       setTeamAnswers({});
       setTimer(q.timeLimit || 30);
       setPhase('answering');
+      setLoading(false);
     } catch (err) {
       console.error('Error loading question:', err);
       // Use fallback question
@@ -193,6 +192,38 @@ const LocalGamePage: React.FC = () => {
     }
   };
 
+  const selectSubject = (subjectId: string) => {
+    setSelectedSubject(subjectId);
+    // If subject was picked first, now move to type picking
+    if (firstPickIsSubject) {
+      setPhase('pick_type');
+    } else {
+      // If type was picked first, now we have both - load question
+      if (selectedType) {
+        loadQuestion(subjectId, selectedType);
+      }
+    }
+  };
+
+  const selectType = async (typeId: string) => {
+    setSelectedType(typeId);
+    
+    // If type was picked first, now move to subject picking
+    if (!firstPickIsSubject) {
+      setPhase('pick_subject');
+      return;
+    }
+    
+    // If subject was picked first, now we have both - load question
+    if (!selectedSubject) {
+      // This shouldn't happen, but just in case
+      console.warn('Subject not selected yet, but type was picked second');
+      return;
+    }
+    
+    await loadQuestion(selectedSubject, typeId);
+  };
+
   const answerQuestion = (teamId: string, optionId: string) => {
     if (teamAnswers[teamId] || phase !== 'answering') return; // Already answered or wrong phase
     setTeamAnswers(prev => ({ ...prev, [teamId]: optionId }));
@@ -211,16 +242,21 @@ const LocalGamePage: React.FC = () => {
       }));
     }
 
-    // Next round
-    const nextPicker = (pickingTeamIndex + 1) % teams.length;
-    setPickingTeamIndex(nextPicker);
-    if (nextPicker === 0) setRound(r => r + 1);
+    // Next round - rotate both the team AND what they pick
+    setFirstPickerIndex(prev => {
+      const next = (prev + 1) % teams.length;
+      if (next === 0) setRound(r => r + 1);
+      return next;
+    });
+    setFirstPickIsSubject(prev => !prev); // Alternate subject/type
     
     setCurrentQuestion(null);
     setTeamAnswers({});
     setSelectedSubject(null);
     setSelectedType(null);
-    setPhase('pick_subject');
+    // Set phase based on what the first picker picks (after toggle)
+    const nextFirstPickIsSubject = !firstPickIsSubject;
+    setPhase(nextFirstPickIsSubject ? 'pick_subject' : 'pick_type');
   };
 
   const allAnswered = teams.length > 0 && teams.every(t => teamAnswers[t.id]);
@@ -270,18 +306,22 @@ const LocalGamePage: React.FC = () => {
 
           {/* Scoreboard */}
           <div className="flex justify-center gap-6 mb-6">
-            {teams.map((team, i) => (
-              <div
-                key={team.id}
-                className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
-                  phase === 'pick_subject' && i === pickingTeamIndex ? 'ring-4 ring-yellow-400 scale-105' : ''
-                }`}
-                style={{ backgroundColor: team.color }}
-              >
-                <div className="text-white font-bold">{team.name}</div>
-                <div className="text-4xl font-bold text-white">{team.score}</div>
-              </div>
-            ))}
+            {teams.map((team, i) => {
+              const isPicking = (phase === 'pick_subject' && i === subjectPickerIndex) || 
+                                (phase === 'pick_type' && i === typePickerIndex);
+              return (
+                <div
+                  key={team.id}
+                  className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
+                    isPicking ? 'ring-4 ring-yellow-400 scale-105' : ''
+                  }`}
+                  style={{ backgroundColor: team.color }}
+                >
+                  <div className="text-white font-bold">{team.name}</div>
+                  <div className="text-4xl font-bold text-white">{team.score}</div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Main Content */}
@@ -292,7 +332,7 @@ const LocalGamePage: React.FC = () => {
               <>
                 <div className="text-center mb-6">
                   <span className="text-white text-xl">
-                    <strong style={{ color: pickingTeam?.color }}>{pickingTeam?.name}</strong> يختار الموضوع
+                    <strong style={{ color: subjectPickerTeam?.color }}>{subjectPickerTeam?.name}</strong> يختار الموضوع
                   </span>
                 </div>
                 
@@ -315,7 +355,7 @@ const LocalGamePage: React.FC = () => {
               <>
                 <div className="text-center mb-6">
                   <span className="text-white text-xl">
-                    <strong style={{ color: opposingTeam?.color }}>{opposingTeam?.name}</strong> يختار نوع السؤال
+                    <strong style={{ color: typePickerTeam?.color }}>{typePickerTeam?.name}</strong> يختار نوع السؤال
                   </span>
                   {selectedSubject && (
                     <p className="text-white/60 text-sm mt-2">

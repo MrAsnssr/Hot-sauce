@@ -14,6 +14,8 @@ interface GameRoom {
   lockedAnswers?: Record<string, { optionId: string; timestamp: number }>; // {teamId: {optionId, timestamp}}
   currentQuestion?: any;
   teams?: any[];
+  firstPickerIndex?: number; // Which team picks first
+  firstPickIsSubject?: boolean; // Whether first pick is subject (true) or type (false)
 }
 
 const gameRooms = new Map<string, GameRoom>();
@@ -156,12 +158,19 @@ export const setupGameSocket = (io: Server) => {
       const room = gameRooms.get(gameId);
       if (room) {
         room.teams = teams.map((t: any) => ({ ...t, score: 0 }));
+        // Initialize picker state: first team picks subject first
+        room.firstPickerIndex = 0;
+        room.firstPickIsSubject = true;
         room.subjectPickerTeamId = teams[0]?.id;
         room.currentPhase = 'pick_subject';
         console.log(`🔵 [BACKEND] Game started for room ${gameId} with ${teams.length} teams`);
         console.log(`🔵 [BACKEND] Broadcasting game-started to all ${room.sockets.size} sockets in room ${gameId}`);
         // Broadcast to ALL players in the room (including host)
-        io.to(gameId).emit('game-started', { teams: room.teams });
+        io.to(gameId).emit('game-started', { 
+          teams: room.teams,
+          firstPickerIndex: room.firstPickerIndex,
+          firstPickIsSubject: room.firstPickIsSubject,
+        });
         console.log(`🔵 [BACKEND] game-started event broadcasted`);
       } else {
         console.error(`🔵 [BACKEND] Room ${gameId} not found when trying to start game`);
@@ -368,25 +377,37 @@ export const setupGameSocket = (io: Server) => {
     socket.on('round-ended', (data: { gameId: string }) => {
       const { gameId } = data;
       const room = gameRooms.get(gameId);
-      if (room) {
-        room.currentPhase = 'pick_subject';
+      if (room && room.teams && room.teams.length > 0) {
+        // Clear round data
         room.selectedSubjectId = undefined;
         room.selectedTypeId = undefined;
         room.currentQuestion = undefined;
         room.votes = {};
         room.lockedAnswers = {};
         
-        // Alternate subject picker
-        if (room.teams && room.teams.length > 0) {
-          const currentIndex = room.teams.findIndex((t: any) => t.id === room.subjectPickerTeamId);
-          const nextIndex = (currentIndex + 1) % room.teams.length;
-          room.subjectPickerTeamId = room.teams[nextIndex].id;
+        // Rotate picker: alternate both the team AND what they pick
+        if (room.firstPickerIndex !== undefined) {
+          room.firstPickerIndex = (room.firstPickerIndex + 1) % room.teams.length;
+          room.firstPickIsSubject = !room.firstPickIsSubject; // Alternate subject/type
+        } else {
+          // Initialize if not set
+          room.firstPickerIndex = 0;
+          room.firstPickIsSubject = true;
         }
         
-        console.log(`🔵 [BACKEND] Round ended for room ${gameId}, next picker: ${room.subjectPickerTeamId}`);
+        // Determine which team picks what
+        const secondPickerIndex = (room.firstPickerIndex! + 1) % room.teams.length;
+        const subjectPickerIndex = room.firstPickIsSubject ? room.firstPickerIndex! : secondPickerIndex;
+        room.subjectPickerTeamId = room.teams[subjectPickerIndex]?.id;
+        room.currentPhase = room.firstPickIsSubject ? 'pick_subject' : 'pick_type';
+        
+        console.log(`🔵 [BACKEND] Round ended for room ${gameId}`);
+        console.log(`🔵 [BACKEND] Next: Team ${room.firstPickerIndex} picks ${room.firstPickIsSubject ? 'subject' : 'type'} first`);
         io.to(gameId).emit('round-ended', { 
           subjectPickerTeamId: room.subjectPickerTeamId,
           teams: room.teams,
+          firstPickerIndex: room.firstPickerIndex,
+          firstPickIsSubject: room.firstPickIsSubject,
         });
       }
     });

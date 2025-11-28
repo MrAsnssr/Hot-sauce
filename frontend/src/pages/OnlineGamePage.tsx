@@ -48,7 +48,8 @@ const OnlineGamePage: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [round, setRound] = useState(1);
-  const [subjectPickerIndex, setSubjectPickerIndex] = useState(0);
+  const [firstPickerIndex, setFirstPickerIndex] = useState(0); // Which team picks first
+  const [firstPickIsSubject, setFirstPickIsSubject] = useState(true); // Whether first pick is subject or type
 
   // Current round state
   const [phase, setPhase] = useState<GamePhase>('pick_subject');
@@ -161,7 +162,7 @@ const OnlineGamePage: React.FC = () => {
       }
     });
 
-    newSocket.on('game-started', (data: { teams: Team[] }) => {
+    newSocket.on('game-started', (data: { teams: Team[]; firstPickerIndex?: number; firstPickIsSubject?: boolean }) => {
       // This might happen if late joiner or re-sync
       if (data.teams) {
         setTeams(data.teams);
@@ -170,6 +171,15 @@ const OnlineGamePage: React.FC = () => {
             t.players?.some((p: any) => p.name === pId || p.id === pId)
         );
         if (playerTeam) setPlayerTeamId(playerTeam.id);
+      }
+      // Initialize picker state
+      if (data.firstPickerIndex !== undefined) {
+        setFirstPickerIndex(data.firstPickerIndex);
+      }
+      if (data.firstPickIsSubject !== undefined) {
+        setFirstPickIsSubject(data.firstPickIsSubject);
+        // Set initial phase based on what the first picker picks
+        setPhase(data.firstPickIsSubject ? 'pick_subject' : 'pick_type');
       }
     });
 
@@ -247,38 +257,34 @@ const OnlineGamePage: React.FC = () => {
       setPhase('results');
     });
 
-    newSocket.on('round-ended', (data: { subjectPickerTeamId?: string; teams?: Team[] }) => {
+    newSocket.on('round-ended', (data: { subjectPickerTeamId?: string; teams?: Team[]; firstPickerIndex?: number; firstPickIsSubject?: boolean }) => {
       // Update teams if provided
       if (data.teams) {
         setTeams(data.teams);
       }
       
-      // Update subject picker index
-      if (data.subjectPickerTeamId) {
-        // Need to access current 'teams' state. 
-        // Since we are inside closure, better to use functional state update or rely on updated teams from payload
-        // Ideally data.teams is provided.
-        // For simplicity let's trust the backend sent teams or fallback to simple rotation
-        // But we don't have access to 'teams' state here easily without ref/dependency.
-        // Let's rely on data.teams if possible.
+      // Update picker state from backend if provided, otherwise rotate locally
+      if (data.firstPickerIndex !== undefined && data.firstPickIsSubject !== undefined) {
+        setFirstPickerIndex(data.firstPickerIndex);
+        setFirstPickIsSubject(data.firstPickIsSubject);
+      } else {
+        // Rotate: alternate both the team and what they pick
+        setFirstPickerIndex(prev => {
+          const next = (prev + 1) % (data.teams?.length || teams.length || 2);
+          if (next === 0) setRound(r => r + 1);
+          return next;
+        });
+        setFirstPickIsSubject(prev => !prev); // Alternate subject/type
       }
-      
-      // Simple client-side rotation fallback if data incomplete, 
-      // but ideally backend drives this.
-      setSubjectPickerIndex(prev => {
-         // This logic is slightly fragile without up-to-date teams. 
-         // Assuming teams count doesn't change:
-         const next = (prev + 1) % (data.teams?.length || 2); 
-         if (next === 0) setRound(r => r + 1);
-         return next;
-      });
       
       setSelectedSubject(null);
       setSelectedType(null);
       setCurrentQuestion(null);
       setPlayerVotes({});
       setTeamAnswers({});
-      setPhase('pick_subject');
+      // Set phase based on what the first picker picks
+      const firstPickIsSubj = data.firstPickIsSubject !== undefined ? data.firstPickIsSubject : !firstPickIsSubject;
+      setPhase(firstPickIsSubj ? 'pick_subject' : 'pick_type');
     });
     
     setSocket(newSocket);
@@ -313,17 +319,33 @@ const OnlineGamePage: React.FC = () => {
   }, [phase, socket, isHost, roomCode]);
 
   // ============ GAME LOGIC ============
+  // Determine which team picks what based on firstPickerIndex and firstPickIsSubject
+  const secondPickerIndex = (firstPickerIndex + 1) % teams.length;
+  const subjectPickerIndex = firstPickIsSubject ? firstPickerIndex : secondPickerIndex;
+  const typePickerIndex = firstPickIsSubject ? secondPickerIndex : firstPickerIndex;
+  
   const subjectPickerTeam = teams[subjectPickerIndex];
-  const typePickerTeam = teams[(subjectPickerIndex + 1) % teams.length];
+  const typePickerTeam = teams[typePickerIndex];
 
   const handleSelectSubject = (subjectId: string) => {
     if (!isHost || phase !== 'pick_subject') return;
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
-      socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
+      // If subject was picked first, now move to type picking
+      if (firstPickIsSubject) {
+        socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
+        setPhase('pick_type');
+      } else {
+        // If type was picked first (we're picking subject second), now we have both - load question
+        if (selectedType) {
+          socket.emit('load-question', { gameId: roomCode, subjectId, typeId: selectedType });
+        } else {
+          // This shouldn't happen, but just in case
+          console.warn('Type not selected yet, but subject was picked second');
+        }
+      }
     }
-    setPhase('pick_type');
   };
 
   const handleSelectType = (typeId: string) => {
@@ -331,7 +353,19 @@ const OnlineGamePage: React.FC = () => {
     setSelectedType(typeId);
     if (socket) {
       socket.emit('select-type', { gameId: roomCode, typeId });
-      socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
+      // If type was picked first, now move to subject picking
+      if (!firstPickIsSubject) {
+        socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_subject' });
+        setPhase('pick_subject');
+      } else {
+        // If subject was picked first (we're picking type second), now we have both - load question
+        if (selectedSubject) {
+          socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
+        } else {
+          // This shouldn't happen, but just in case
+          console.warn('Subject not selected yet, but type was picked second');
+        }
+      }
     }
   };
 
@@ -447,18 +481,22 @@ const OnlineGamePage: React.FC = () => {
 
           {/* Scoreboard */}
           <div className="flex justify-center gap-6 mb-6">
-            {teams.map((team, i) => (
-              <div
-                key={team.id}
-                className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
-                  i === subjectPickerIndex && phase === 'pick_subject' ? 'ring-4 ring-yellow-400 scale-105' : ''
-                }`}
-                style={{ backgroundColor: team.color }}
-              >
-                <div className="text-white font-bold">{team.name}</div>
-                <div className="text-4xl font-bold text-white">{team.score}</div>
-              </div>
-            ))}
+            {teams.map((team, i) => {
+              const isPicking = (phase === 'pick_subject' && i === subjectPickerIndex) || 
+                                (phase === 'pick_type' && i === typePickerIndex);
+              return (
+                <div
+                  key={team.id}
+                  className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
+                    isPicking ? 'ring-4 ring-yellow-400 scale-105' : ''
+                  }`}
+                  style={{ backgroundColor: team.color }}
+                >
+                  <div className="text-white font-bold">{team.name}</div>
+                  <div className="text-4xl font-bold text-white">{team.score}</div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Main Content */}
