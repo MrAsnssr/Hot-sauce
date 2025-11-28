@@ -379,54 +379,39 @@ const OnlineGamePage: React.FC = () => {
   }, [phase, socket, isHost, roomCode]);
 
   // ============ GAME LOGIC ============
-  // Determine which team picks what based on firstPickerIndex and firstPickIsSubject
+  // Determine which team picks what: firstPickerIndex picks subject, next team picks type
+  // Since firstPickIsSubject is always true now, first team always picks subject first
   const secondPickerIndex = (firstPickerIndex + 1) % teams.length;
-  const subjectPickerIndex = firstPickIsSubject ? firstPickerIndex : secondPickerIndex;
-  const typePickerIndex = firstPickIsSubject ? secondPickerIndex : firstPickerIndex;
+  const subjectPickerIndex = firstPickerIndex; // Always the first picker picks subject
+  const typePickerIndex = secondPickerIndex; // Second team picks type
   
   const subjectPickerTeam = teams[subjectPickerIndex];
   const typePickerTeam = teams[typePickerIndex];
 
   const handleSelectSubject = (subjectId: string) => {
-    // Only allow if host AND host's team is the subject picker team
-    if (!isHost || phase !== 'pick_subject' || !playerTeamId || playerTeamId !== subjectPickerTeam?.id) return;
+    // Host can always pick (acts as game master), but only in correct phase
+    if (!isHost || phase !== 'pick_subject') return;
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
-      // If subject was picked first, now move to type picking
-      if (firstPickIsSubject) {
-        socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
-        setPhase('pick_type');
-      } else {
-        // If type was picked first (we're picking subject second), now we have both - load question
-        if (selectedType) {
-          socket.emit('load-question', { gameId: roomCode, subjectId, typeId: selectedType });
-        } else {
-          // This shouldn't happen, but just in case
-          console.warn('Type not selected yet, but subject was picked second');
-        }
-      }
+      // Subject is always picked first now (firstPickIsSubject is always true)
+      socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
+      setPhase('pick_type');
     }
   };
 
   const handleSelectType = (typeId: string) => {
-    // Only allow if host AND host's team is the type picker team
-    if (!isHost || phase !== 'pick_type' || !playerTeamId || playerTeamId !== typePickerTeam?.id) return;
+    // Host can always pick (acts as game master), but only in correct phase
+    if (!isHost || phase !== 'pick_type') return;
     setSelectedType(typeId);
     if (socket) {
       socket.emit('select-type', { gameId: roomCode, typeId });
-      // If type was picked first, now move to subject picking
-      if (!firstPickIsSubject) {
-        socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_subject' });
-        setPhase('pick_subject');
+      // After type is picked, we have both subject and type - load question
+      if (selectedSubject) {
+        socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
       } else {
-        // If subject was picked first (we're picking type second), now we have both - load question
-        if (selectedSubject) {
-          socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
-        } else {
-          // This shouldn't happen, but just in case
-          console.warn('Subject not selected yet, but type was picked second');
-        }
+        // This shouldn't happen, but just in case
+        console.warn('Subject not selected yet, but type was picked');
       }
     }
   };
@@ -573,7 +558,7 @@ const OnlineGamePage: React.FC = () => {
                   </span>
                 </div>
                 
-                {isHost && playerTeamId === subjectPickerTeam?.id ? (
+                {isHost ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {subjects.map(subject => (
                       <button
@@ -608,7 +593,7 @@ const OnlineGamePage: React.FC = () => {
                   )}
                 </div>
                 
-                {isHost && playerTeamId === typePickerTeam?.id ? (
+                {isHost ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {HARDCODED_QUESTION_TYPES.map(type => (
                       <button
