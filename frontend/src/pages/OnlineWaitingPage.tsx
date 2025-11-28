@@ -39,12 +39,15 @@ const OnlineWaitingPage: React.FC = () => {
   ]);
   const [joinedPlayers, setJoinedPlayers] = useState<JoinedPlayer[]>([]);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   useEffect(() => {
     if (!roomCode) {
       navigate('/');
       return;
     }
+    
+    console.log('🔵 [PLAYER] Component mounted/updated, roomCode:', roomCode);
 
     // Fetch subjects
     const fetchSubjects = async () => {
@@ -66,19 +69,17 @@ const OnlineWaitingPage: React.FC = () => {
     });
 
     newSocket.on('connect', () => {
-      console.log('Player connected to socket:', newSocket.id);
+      console.log('🔵 [PLAYER] Socket connected:', newSocket.id);
+      setSocketConnected(true);
       // Join room with player name
       newSocket.emit('join-game', {
         gameId: roomCode.toUpperCase(),
         playerName: playerName,
         isHost: false,
       });
-      console.log('Emitted join-game with:', { gameId: roomCode.toUpperCase(), playerName, isHost: false });
+      console.log('🔵 [PLAYER] Emitted join-game with:', { gameId: roomCode.toUpperCase(), playerName, isHost: false });
       
-      // Request config after joining
-      setTimeout(() => {
-        newSocket.emit('request-game-config');
-      }, 500);
+      // Don't request config here - backend will handle it after delay
     });
 
     newSocket.on('connect_error', (error) => {
@@ -86,7 +87,19 @@ const OnlineWaitingPage: React.FC = () => {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      console.log('🔵 [PLAYER] Socket disconnected:', reason);
+      setSocketConnected(false);
+    });
+    
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log('🔵 [PLAYER] Socket reconnected after', attemptNumber, 'attempts');
+      setSocketConnected(true);
+      // Re-join room
+      newSocket.emit('join-game', {
+        gameId: roomCode.toUpperCase(),
+        playerName: playerName,
+        isHost: false,
+      });
     });
 
     // Listen for game config updates from host
@@ -137,18 +150,22 @@ const OnlineWaitingPage: React.FC = () => {
     
     // Also listen for player-joined events (in case host sends them separately)
     newSocket.on('player-joined', (data: { socketId: string; playerName: string; isHost?: boolean }) => {
-      console.log('Player joined event received on waiting page:', data);
+      console.log('🔵 [PLAYER] Player joined event received on waiting page:', data);
       if (!data.isHost) {
         setJoinedPlayers((prev) => {
           // Check if player already exists
           if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
+            console.log('🔵 [PLAYER] Player already in list, skipping');
             return prev;
           }
-          return [...prev, {
+          const newPlayer = {
             id: `player-${Date.now()}-${Math.random()}`,
             name: data.playerName,
             teamId: null,
-          }];
+            socketId: data.socketId,
+          };
+          console.log('🔵 [PLAYER] Adding player from player-joined event:', newPlayer);
+          return [...prev, newPlayer];
         });
       }
     });
@@ -163,9 +180,10 @@ const OnlineWaitingPage: React.FC = () => {
     setSocket(newSocket);
 
     return () => {
+      console.log('🔵 [PLAYER] Component unmounting, disconnecting socket');
       newSocket.disconnect();
     };
-  }, [roomCode, playerName, navigate]);
+  }, [roomCode, playerName, navigate]); // Keep dependencies minimal to avoid re-connections
 
   return (
     <WoodyBackground>
@@ -320,6 +338,12 @@ const OnlineWaitingPage: React.FC = () => {
           <p className="text-white/50 text-sm">
             سيبدأ المضيف اللعبة قريباً
           </p>
+          {/* Debug info */}
+          <div className="mt-4 text-xs text-white/30">
+            Socket: {socketConnected ? '✅ متصل' : '❌ غير متصل'} | 
+            Players: {joinedPlayers.length} | 
+            Config: {configLoaded ? '✅' : '⏳'}
+          </div>
         </div>
       </div>
       </div>
