@@ -52,13 +52,16 @@ export const setupGameSocket = (io: Server) => {
       }
       
       // For room-based games (using room codes)
-      // Emit player joined event to all in room
+      // Emit player joined event to all in room (including sender so host sees it)
       if (playerName) {
+        console.log(`Player ${playerName} (${socket.id}) joined room ${gameId}, isHost: ${isHost}`);
+        // Emit to all in room including the sender
         io.to(gameId).emit('player-joined', { 
           socketId: socket.id,
           playerName,
           isHost 
         });
+        console.log(`Emitted player-joined to room ${gameId}`);
       }
       
       // Request game config from host if not host

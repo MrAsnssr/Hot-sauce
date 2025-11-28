@@ -52,6 +52,7 @@ const OnlineCreatePage: React.FC = () => {
     // Store room info
     sessionStorage.setItem('hostRoomCode', code);
     sessionStorage.setItem('isHost', 'true');
+    console.log('Host room code:', code);
     
     // Fetch game data
     fetchGameData();
@@ -61,9 +62,12 @@ const OnlineCreatePage: React.FC = () => {
     const newSocket = io(socketUrl, {
       transports: ['websocket'],
       reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     newSocket.on('connect', () => {
+      console.log('Host connected to socket:', newSocket.id);
       // Join as host
       newSocket.emit('join-game', {
         gameId: code,
@@ -72,8 +76,17 @@ const OnlineCreatePage: React.FC = () => {
       });
     });
 
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
     // Listen for players joining
-    newSocket.on('player-joined', (data: { socketId: string; playerName: string }) => {
+    newSocket.on('player-joined', (data: { socketId: string; playerName: string; isHost?: boolean }) => {
+      console.log('Player joined event received:', data);
+      // Don't add host to player list
+      if (data.isHost) {
+        return;
+      }
       const newPlayer: JoinedPlayer = {
         id: `player-${Date.now()}-${Math.random()}`,
         name: data.playerName,
@@ -85,6 +98,7 @@ const OnlineCreatePage: React.FC = () => {
         if (prev.some(p => p.socketId === data.socketId)) {
           return prev;
         }
+        console.log('Adding new player:', newPlayer);
         return [...prev, newPlayer];
       });
     });

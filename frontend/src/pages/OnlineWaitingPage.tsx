@@ -65,12 +65,18 @@ const OnlineWaitingPage: React.FC = () => {
     });
 
     newSocket.on('connect', () => {
+      console.log('Player connected to socket:', newSocket.id);
       // Join room with player name
       newSocket.emit('join-game', {
-        gameId: roomCode,
+        gameId: roomCode.toUpperCase(),
         playerName: playerName,
         isHost: false,
       });
+      console.log('Emitted join-game with:', { gameId: roomCode.toUpperCase(), playerName, isHost: false });
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
     });
 
     // Listen for game config updates from host
