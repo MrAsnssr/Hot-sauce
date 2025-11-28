@@ -69,6 +69,15 @@ app.use(express.json());
 // Database connection
 connectDatabase();
 
+// Root health check (for Render deployment verification)
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Arabic Trivia API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/questions', questionRoutes);
 app.use('/api/subjects', subjectRoutes);
@@ -81,7 +90,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Arabic Trivia API is running',
-    openaiConfigured: !!process.env.OPENAI_API_KEY
+    openaiConfigured: !!process.env.OPENAI_API_KEY,
+    timestamp: new Date().toISOString()
   });
 });
 
