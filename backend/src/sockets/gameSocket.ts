@@ -250,7 +250,11 @@ export const setupGameSocket = (io: Server) => {
         }
 
         if (questions.length === 0) {
-          socket.emit('error', { message: 'No questions found' });
+          console.error(`No questions found for subjectId: ${subjectId}, typeId: ${typeId}`);
+          socket.emit('error', { 
+            message: 'No questions found',
+            details: 'لا توجد أسئلة متاحة. يرجى التأكد من وجود أسئلة في قاعدة البيانات.'
+          });
           return;
         }
 
@@ -268,7 +272,10 @@ export const setupGameSocket = (io: Server) => {
         io.to(gameId).emit('question-loaded', { question: questionObj });
       } catch (error: any) {
         console.error('Error loading question:', error);
-        socket.emit('error', { message: error.message });
+        socket.emit('error', { 
+          message: error.message || 'حدث خطأ في تحميل السؤال',
+          details: error.stack 
+        });
       }
     });
 
@@ -385,21 +392,24 @@ export const setupGameSocket = (io: Server) => {
         room.votes = {};
         room.lockedAnswers = {};
         
-        // Rotate picker: alternate both the team AND what they pick
+        // Rotate picker: rotate ONLY the team index. Keep picking subject first.
         if (room.firstPickerIndex !== undefined) {
           room.firstPickerIndex = (room.firstPickerIndex + 1) % room.teams.length;
-          room.firstPickIsSubject = !room.firstPickIsSubject; // Alternate subject/type
+          // room.firstPickIsSubject = true; // Always true to ensure rotation works
         } else {
           // Initialize if not set
           room.firstPickerIndex = 0;
           room.firstPickIsSubject = true;
         }
         
+        // Ensure firstPickIsSubject is always true for proper rotation
+        room.firstPickIsSubject = true;
+        
         // Determine which team picks what
         const secondPickerIndex = (room.firstPickerIndex! + 1) % room.teams.length;
         const subjectPickerIndex = room.firstPickIsSubject ? room.firstPickerIndex! : secondPickerIndex;
         room.subjectPickerTeamId = room.teams[subjectPickerIndex]?.id;
-        room.currentPhase = room.firstPickIsSubject ? 'pick_subject' : 'pick_type';
+        room.currentPhase = 'pick_subject'; // Always start with picking subject
         
         console.log(`🔵 [BACKEND] Round ended for room ${gameId}`);
         console.log(`🔵 [BACKEND] Next: Team ${room.firstPickerIndex} picks ${room.firstPickIsSubject ? 'subject' : 'type'} first`);

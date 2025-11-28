@@ -78,14 +78,17 @@ const LocalGamePage: React.FC = () => {
   const loadSubjects = async () => {
     try {
       const res = await api.get('/subjects');
-      const mapped = (res.data || []).map((s: any) => ({
+      const data = Array.isArray(res.data) ? res.data : (res.data?.subjects || []);
+      const mapped = data.map((s: any) => ({
         id: s._id || s.id,
-        nameAr: s.nameAr || s.name,
+        nameAr: s.nameAr || s.name || 'موضوع',
       }));
       setSubjects(mapped.length > 0 ? mapped : [
         { id: '1', nameAr: 'ثقافة عامة' },
       ]);
-    } catch {
+    } catch (err) {
+      console.error('Error loading subjects:', err);
+      // Use fallback subject
       setSubjects([{ id: '1', nameAr: 'ثقافة عامة' }]);
     }
   };
@@ -136,6 +139,11 @@ const LocalGamePage: React.FC = () => {
       const res = await api.post('/games/temp/question', { subjectId, questionTypeId: typeId });
       const q = res.data;
       
+      // Check if response has error
+      if (res.data.error) {
+        throw new Error(res.data.message || res.data.error);
+      }
+      
       // Build options
       let options: QuestionOption[] = [];
       if (q.options?.length > 0) {
@@ -152,10 +160,26 @@ const LocalGamePage: React.FC = () => {
           { id: 'w2', text: 'خيار خاطئ ٢', isCorrect: false },
           { id: 'w3', text: 'خيار خاطئ ٣', isCorrect: false },
         ]);
+      } else if (q.orderItems) {
+        // For order questions, create options from order items
+        const shuffled = shuffleArray([...q.orderItems]);
+        options = shuffled.map((item: any, i: number) => ({
+          id: item.id || `${i}`,
+          text: item.text,
+          isCorrect: false, // Will be checked based on position
+        }));
+      } else if (q.whoAndWhoData) {
+        // For who-and-who questions, create options from achievements
+        const shuffled = shuffleArray([...q.whoAndWhoData.achievements]);
+        options = shuffled.map((ach: any, i: number) => ({
+          id: ach.id || `${i}`,
+          text: ach.text,
+          isCorrect: false, // Will be checked based on personId matching
+        }));
       }
 
       if (options.length === 0) {
-        throw new Error('No options');
+        throw new Error('No options available for this question type');
       }
 
       setCurrentQuestion({
@@ -169,8 +193,13 @@ const LocalGamePage: React.FC = () => {
       setTimer(q.timeLimit || 30);
       setPhase('answering');
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading question:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'حدث خطأ في تحميل السؤال';
+      
+      // Show error to user
+      alert(errorMessage + '\n\nسيتم استخدام سؤال احتياطي.');
+      
       // Use fallback question
       setCurrentQuestion({
         id: 'fallback',
@@ -187,12 +216,12 @@ const LocalGamePage: React.FC = () => {
       setTeamAnswers({});
       setTimer(30);
       setPhase('answering');
-    } finally {
       setLoading(false);
     }
   };
 
   const selectSubject = (subjectId: string) => {
+    if (phase !== 'pick_subject') return; // Only allow in correct phase
     setSelectedSubject(subjectId);
     // If subject was picked first, now move to type picking
     if (firstPickIsSubject) {
@@ -201,11 +230,15 @@ const LocalGamePage: React.FC = () => {
       // If type was picked first, now we have both - load question
       if (selectedType) {
         loadQuestion(subjectId, selectedType);
+      } else {
+        console.warn('Type not selected yet, but subject was picked second');
+        // This shouldn't happen, but wait for type selection
       }
     }
   };
 
   const selectType = async (typeId: string) => {
+    if (phase !== 'pick_type') return; // Only allow in correct phase
     setSelectedType(typeId);
     
     // If type was picked first, now move to subject picking
@@ -230,7 +263,7 @@ const LocalGamePage: React.FC = () => {
   };
 
   const nextRound = () => {
-    if (!currentQuestion) return;
+    if (!currentQuestion || phase !== 'results') return; // Only allow in results phase
 
     // Calculate scores - both teams can get points if correct
     const correctId = currentQuestion.options?.find(o => o.isCorrect)?.id;
@@ -242,21 +275,20 @@ const LocalGamePage: React.FC = () => {
       }));
     }
 
-    // Next round - rotate both the team AND what they pick
+    // Next round - rotate the starting team
     setFirstPickerIndex(prev => {
       const next = (prev + 1) % teams.length;
       if (next === 0) setRound(r => r + 1);
       return next;
     });
-    setFirstPickIsSubject(prev => !prev); // Alternate subject/type
+    // We KEEP firstPickIsSubject as true, so the new starter always picks Subject first.
+    // This ensures roles actually swap.
     
     setCurrentQuestion(null);
     setTeamAnswers({});
     setSelectedSubject(null);
     setSelectedType(null);
-    // Set phase based on what the first picker picks (after toggle)
-    const nextFirstPickIsSubject = !firstPickIsSubject;
-    setPhase(nextFirstPickIsSubject ? 'pick_subject' : 'pick_type');
+    setPhase('pick_subject'); // Always start new round with picking subject
   };
 
   const allAnswered = teams.length > 0 && teams.every(t => teamAnswers[t.id]);

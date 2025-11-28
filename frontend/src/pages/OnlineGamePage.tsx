@@ -118,12 +118,14 @@ const OnlineGamePage: React.FC = () => {
     try {
       const res = await api.get('/subjects');
       const data = Array.isArray(res.data) ? res.data : (res.data?.subjects ? res.data.subjects : []);
-      setSubjects(data.map((s: any) => ({
+      const mapped = data.map((s: any) => ({
         id: s._id || s.id,
-        nameAr: s.nameAr || s.name,
-      })));
+        nameAr: s.nameAr || s.name || 'موضوع',
+      }));
+      setSubjects(mapped.length > 0 ? mapped : [{ id: '1', nameAr: 'ثقافة عامة' }]);
     } catch (error) {
       console.error('Error fetching subjects:', error);
+      // Use fallback subject
       setSubjects([{ id: '1', nameAr: 'ثقافة عامة' }]);
     }
   };
@@ -157,8 +159,22 @@ const OnlineGamePage: React.FC = () => {
                // Re-sync teams if backend lost them
                newSocket.emit('update-game-config', { teams: parsed.teams });
              }
-           } catch(e) {}
+           } catch(e) {
+             console.error('Error parsing game data:', e);
+           }
         }
+      }
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('🔌 Socket connection error:', error);
+      alert('خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
+    });
+
+    newSocket.on('error', (error: any) => {
+      console.error('🔌 Socket error:', error);
+      if (error.message) {
+        alert(`خطأ: ${error.message}`);
       }
     });
 
@@ -200,6 +216,11 @@ const OnlineGamePage: React.FC = () => {
 
     newSocket.on('question-loaded', (data: { question: any }) => {
       const q = data.question;
+      if (!q) {
+        console.error('No question data received');
+        return;
+      }
+      
       let options: QuestionOption[] = [];
       if (q.options?.length > 0) {
         options = q.options.map((o: any, i: number) => ({
@@ -214,6 +235,27 @@ const OnlineGamePage: React.FC = () => {
           { id: 'w2', text: 'خيار خاطئ ٢', isCorrect: false },
           { id: 'w3', text: 'خيار خاطئ ٣', isCorrect: false },
         ]);
+      } else if (q.orderItems) {
+        // For order questions, create options from order items
+        const shuffled = shuffleArray([...q.orderItems]);
+        options = shuffled.map((item: any, i: number) => ({
+          id: item.id || `${i}`,
+          text: item.text,
+          isCorrect: false,
+        }));
+      } else if (q.whoAndWhoData) {
+        // For who-and-who questions, create options from achievements
+        const shuffled = shuffleArray([...q.whoAndWhoData.achievements]);
+        options = shuffled.map((ach: any, i: number) => ({
+          id: ach.id || `${i}`,
+          text: ach.text,
+          isCorrect: false,
+        }));
+      }
+
+      if (options.length === 0) {
+        console.error('No options available for question');
+        return;
       }
 
       setCurrentQuestion({
@@ -268,13 +310,14 @@ const OnlineGamePage: React.FC = () => {
         setFirstPickerIndex(data.firstPickerIndex);
         setFirstPickIsSubject(data.firstPickIsSubject);
       } else {
-        // Rotate: alternate both the team and what they pick
+        // Rotate: alternate ONLY the team
         setFirstPickerIndex(prev => {
           const next = (prev + 1) % (data.teams?.length || teams.length || 2);
           if (next === 0) setRound(r => r + 1);
           return next;
         });
-        setFirstPickIsSubject(prev => !prev); // Alternate subject/type
+        // Do NOT alternate subject/type
+        // setFirstPickIsSubject(prev => !prev); 
       }
       
       setSelectedSubject(null);
@@ -282,9 +325,26 @@ const OnlineGamePage: React.FC = () => {
       setCurrentQuestion(null);
       setPlayerVotes({});
       setTeamAnswers({});
-      // Set phase based on what the first picker picks
-      const firstPickIsSubj = data.firstPickIsSubject !== undefined ? data.firstPickIsSubject : !firstPickIsSubject;
-      setPhase(firstPickIsSubj ? 'pick_subject' : 'pick_type');
+      // Always start with pick_subject
+      setPhase('pick_subject');
+    });
+
+    newSocket.on('error', (error: any) => {
+      console.error('Socket error event:', error);
+      const errorMessage = error.message || error.details || 'حدث خطأ في الاتصال';
+      alert(`خطأ: ${errorMessage}`);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.warn('Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected, reconnect manually
+        alert('انقطع الاتصال بالخادم. سيتم إعادة الاتصال...');
+      }
+    });
+
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
     });
     
     setSocket(newSocket);

@@ -72,11 +72,20 @@ router.post('/temp/question', async (req: Request, res: Response) => {
     
     if (questions.length === 0) {
       // Log why no questions were found for debugging
-      console.log('No questions found in database at all');
+      console.log('No questions found in database');
       console.log('Request params:', { subjectId, questionTypeId, difficulty });
       console.log('Applied filter:', filter);
       const totalQuestions = await Question.countDocuments();
       console.log('Total questions in DB:', totalQuestions);
+      
+      // Try to get any questions to help debug
+      const allQuestions = await Question.find().limit(5);
+      if (allQuestions.length > 0) {
+        console.log('Sample question structure:', {
+          subjectId: allQuestions[0].subjectId,
+          questionTypeId: allQuestions[0].questionTypeId,
+        });
+      }
       
       // Return a more helpful error instead of mock question
       return res.status(404).json({ 
@@ -84,7 +93,12 @@ router.post('/temp/question', async (req: Request, res: Response) => {
         message: 'لا توجد أسئلة متاحة في قاعدة البيانات. يرجى إنشاء أسئلة من لوحة الإدارة أولاً.',
         suggestion: 'Go to Admin panel and generate questions for subjects',
         filter: filter,
-        totalInDb: totalQuestions
+        totalInDb: totalQuestions,
+        debug: {
+          subjectId,
+          questionTypeId,
+          filterUsed: filter,
+        }
       });
     }
     
