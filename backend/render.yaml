@@ -3,7 +3,7 @@ services:
     name: arabic-trivia-backend
     env: node
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: PORT
