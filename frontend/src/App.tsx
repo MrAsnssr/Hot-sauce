@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import LocalSetupPage from './pages/LocalSetupPage';
 import LocalGamePage from './pages/LocalGamePage';
@@ -10,6 +11,7 @@ import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         {/* Main */}
@@ -30,6 +32,7 @@ function App() {
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

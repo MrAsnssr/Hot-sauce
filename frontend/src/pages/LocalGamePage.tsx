@@ -94,10 +94,14 @@ const LocalGamePage: React.FC = () => {
     }
   };
 
-  const currentTeam = teams[currentTeamIndex];
-  const opposingTeam = teams[(currentTeamIndex + 1) % teams.length];
+  // Defensive checks for teams
+  const currentTeam = teams.length > 0 ? teams[currentTeamIndex] : null;
+  const opposingTeam = teams.length > 1 ? teams[(currentTeamIndex + 1) % teams.length] : null;
+  const teamA = teams.length > 0 ? teams[0] : null;
+  const teamB = teams.length > 1 ? teams[1] : null;
 
   const handleSubjectSelect = (subject: Subject) => {
+    if (!currentTeam) return;
     setSelectedSubject(subject);
     setSubjectTeamId(currentTeam.id);
     // Switch to opposing team to pick type
@@ -192,8 +196,13 @@ const LocalGamePage: React.FC = () => {
     if (!currentQuestion) return;
 
     // Calculate scores for both teams
-    const teamA = teams[0];
-    const teamB = teams[1];
+    const teamAScore = teams[0];
+    const teamBScore = teams[1];
+    
+    if (!teamAScore || !teamBScore) {
+      console.error('Teams not found');
+      return;
+    }
     
     let teamACorrect = false;
     let teamBCorrect = false;
@@ -213,16 +222,16 @@ const LocalGamePage: React.FC = () => {
     let teamBPoints = teamBCorrect ? (currentQuestion.points || 10) : 0;
 
     if (currentSauce) {
-      if (currentSauce.effect === 'double_points' && subjectTeamId === teamA.id && teamACorrect) {
+      if (currentSauce.effect === 'double_points' && subjectTeamId === teamAScore.id && teamACorrect) {
         teamAPoints *= 2;
-      } else if (currentSauce.effect === 'double_points' && subjectTeamId === teamB.id && teamBCorrect) {
+      } else if (currentSauce.effect === 'double_points' && subjectTeamId === teamBScore.id && teamBCorrect) {
         teamBPoints *= 2;
       }
       
-      if (currentSauce.effect === 'steal_point' && subjectTeamId === teamA.id && teamACorrect) {
+      if (currentSauce.effect === 'steal_point' && subjectTeamId === teamAScore.id && teamACorrect) {
         teamAPoints += 1;
         teamBPoints = Math.max(0, teamBPoints - 1);
-      } else if (currentSauce.effect === 'steal_point' && subjectTeamId === teamB.id && teamBCorrect) {
+      } else if (currentSauce.effect === 'steal_point' && subjectTeamId === teamBScore.id && teamBCorrect) {
         teamBPoints += 1;
         teamAPoints = Math.max(0, teamAPoints - 1);
       }
@@ -231,9 +240,9 @@ const LocalGamePage: React.FC = () => {
     // Update scores
     setTeams((prev) =>
       prev.map((t) => {
-        if (t.id === teamA.id) {
+        if (t.id === teamAScore.id) {
           return { ...t, score: t.score + teamAPoints };
-        } else if (t.id === teamB.id) {
+        } else if (t.id === teamBScore.id) {
           return { ...t, score: t.score + teamBPoints };
         }
         return t;
@@ -304,23 +313,23 @@ const LocalGamePage: React.FC = () => {
         </div>
 
         {/* Current Team Turn */}
-        {phase === 'team_select_subject' && (
+        {phase === 'team_select_subject' && currentTeam && (
           <div
             className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${currentTeam?.color}40` }}
+            style={{ backgroundColor: `${currentTeam.color}40` }}
           >
             <span className="text-white text-xl">
-              دور: <strong>{currentTeam?.name}</strong> - اختر الموضوع
+              دور: <strong>{currentTeam.name}</strong> - اختر الموضوع
             </span>
           </div>
         )}
-        {phase === 'opposing_team_select_type' && (
+        {phase === 'opposing_team_select_type' && opposingTeam && (
           <div
             className="text-center mb-6 py-3 rounded-xl"
-            style={{ backgroundColor: `${opposingTeam?.color}40` }}
+            style={{ backgroundColor: `${opposingTeam.color}40` }}
           >
             <span className="text-white text-xl">
-              دور: <strong>{opposingTeam?.name}</strong> - اختر نوع السؤال
+              دور: <strong>{opposingTeam.name}</strong> - اختر نوع السؤال
             </span>
           </div>
         )}
@@ -460,10 +469,11 @@ const LocalGamePage: React.FC = () => {
               </h2>
 
               {/* Team A Answer Section */}
+              {teamA && (
               <div className="mb-6">
                 <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teams[0]?.color }}>
-                    {teams[0]?.name}
+                  <span className="text-white font-bold" style={{ color: teamA.color }}>
+                    {teamA.name}
                   </span>
                 </div>
                 {currentQuestion.options && (
@@ -485,12 +495,14 @@ const LocalGamePage: React.FC = () => {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Team B Answer Section */}
+              {teamB && (
               <div className="mb-6">
                 <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teams[1]?.color }}>
-                    {teams[1]?.name}
+                  <span className="text-white font-bold" style={{ color: teamB.color }}>
+                    {teamB.name}
                   </span>
                 </div>
                 {currentQuestion.options && (
@@ -512,6 +524,7 @@ const LocalGamePage: React.FC = () => {
                   </div>
                 )}
               </div>
+              )}
 
               {(teamAAnswer && teamBAnswer) && (
                 <div className="text-center">
@@ -530,10 +543,11 @@ const LocalGamePage: React.FC = () => {
               </h2>
 
               {/* Team A Results */}
+              {teamA && (
               <div className="mb-6">
                 <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teams[0]?.color }}>
-                    {teams[0]?.name}
+                  <span className="text-white font-bold" style={{ color: teamA.color }}>
+                    {teamA.name}
                   </span>
                 </div>
                 {currentQuestion.options && (
@@ -560,12 +574,14 @@ const LocalGamePage: React.FC = () => {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Team B Results */}
+              {teamB && (
               <div className="mb-6">
                 <div className="text-center mb-3">
-                  <span className="text-white font-bold" style={{ color: teams[1]?.color }}>
-                    {teams[1]?.name}
+                  <span className="text-white font-bold" style={{ color: teamB.color }}>
+                    {teamB.name}
                   </span>
                 </div>
                 {currentQuestion.options && (
@@ -592,12 +608,14 @@ const LocalGamePage: React.FC = () => {
                   </div>
                 )}
               </div>
+              )}
 
               <div className="text-center">
                 {/* Team A Result */}
+                {teamA && (
                 <div className="mb-4">
-                  <div className="text-lg mb-2" style={{ color: teams[0]?.color }}>
-                    {teams[0]?.name}:
+                  <div className="text-lg mb-2" style={{ color: teamA.color }}>
+                    {teamA.name}:
                   </div>
                   <div className="text-xl">
                     {teamAAnswer &&
@@ -611,11 +629,13 @@ const LocalGamePage: React.FC = () => {
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* Team B Result */}
+                {teamB && (
                 <div className="mb-6">
-                  <div className="text-lg mb-2" style={{ color: teams[1]?.color }}>
-                    {teams[1]?.name}:
+                  <div className="text-lg mb-2" style={{ color: teamB.color }}>
+                    {teamB.name}:
                   </div>
                   <div className="text-xl">
                     {teamBAnswer &&
@@ -629,6 +649,7 @@ const LocalGamePage: React.FC = () => {
                     )}
                   </div>
                 </div>
+                )}
 
                 <Button onClick={handleNextRound} variant="primary" size="lg">
                   الجولة التالية
