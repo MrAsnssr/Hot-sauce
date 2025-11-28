@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../components/Shared/Button';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
 
 const OnlineJoinPage: React.FC = () => {
   const navigate = useNavigate();
-  const { roomCode } = useParams<{ roomCode: string }>();
+  const { roomCode: urlRoomCode } = useParams<{ roomCode: string }>();
+  
   const [playerName, setPlayerName] = useState('');
-  const [joining, setJoining] = useState(false);
+  const [roomCode, setRoomCode] = useState(urlRoomCode?.toUpperCase() || '');
   const [error, setError] = useState('');
-  const [manualCode, setManualCode] = useState(roomCode || '');
+  const [joining, setJoining] = useState(false);
 
   const handleJoin = async () => {
     if (!playerName.trim()) {
       setError('الرجاء إدخال اسمك');
       return;
     }
-
-    const code = roomCode || manualCode;
-    if (!code.trim()) {
+    if (!roomCode.trim()) {
       setError('الرجاء إدخال رمز الغرفة');
       return;
     }
@@ -26,86 +24,82 @@ const OnlineJoinPage: React.FC = () => {
     setJoining(true);
     setError('');
 
-    try {
-      // Store player info
-      sessionStorage.setItem('playerName', playerName);
-      sessionStorage.setItem('roomCode', code.toUpperCase());
-      sessionStorage.setItem('isHost', 'false');
-
-      // Navigate to waiting room (socket connection will happen there)
-      navigate('/online/waiting');
-    } catch (err) {
-      setError('فشل الانضمام للغرفة');
-      setJoining(false);
-    }
+    // Store player info
+    sessionStorage.setItem('isHost', 'false');
+    sessionStorage.setItem('roomCode', roomCode.toUpperCase());
+    sessionStorage.setItem('playerName', playerName.trim());
+    
+    // In a real app, we would verify the room exists via socket/API
+    // For now, just navigate to waiting page
+    navigate('/online/waiting');
   };
 
   return (
     <WoodyBackground>
-      <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">انضم للعبة</h1>
-          {roomCode && (
-            <p className="text-white/70">
-              رمز الغرفة: <span className="text-yellow-400 font-bold">{roomCode}</span>
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-          {!roomCode && (
-            <div className="mb-4">
-              <label className="block text-white mb-2">رمز الغرفة</label>
-              <input
-                type="text"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                placeholder="أدخل الرمز"
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 text-center text-2xl tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-                dir="ltr"
-                maxLength={6}
-              />
-            </div>
-          )}
-
-          <div className="mb-6">
-            <label className="block text-white mb-2">اسمك</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="أدخل اسمك"
-              className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              dir="rtl"
-              onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-            />
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          
+          {/* Header */}
+          <div className="text-center mb-8">
+            <button
+              onClick={() => navigate('/')}
+              className="text-white/70 hover:text-white absolute top-4 right-4"
+            >
+              ✕
+            </button>
+            <h1 className="text-3xl font-bold text-white">انضم للعبة</h1>
           </div>
 
-          {error && (
-            <div className="text-red-400 text-center mb-4">{error}</div>
-          )}
+          <div className="bg-white/10 rounded-xl p-6">
+            {/* Error */}
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4 text-center">
+                <p className="text-red-300">{error}</p>
+              </div>
+            )}
 
-          <Button
-            onClick={handleJoin}
-            variant="primary"
-            size="lg"
-            className="w-full"
-            disabled={joining}
-          >
-            {joining ? 'جاري الانضمام...' : 'انضم'}
-          </Button>
-        </div>
+            {/* Player Name */}
+            <div className="mb-4">
+              <label className="text-white/60 text-sm block mb-1">اسمك</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="أدخل اسمك"
+                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 text-lg"
+                dir="rtl"
+                autoFocus
+              />
+            </div>
 
-        <div className="text-center mt-6">
-          <button
-            onClick={() => navigate('/')}
-            className="text-white/60 hover:text-white"
-          >
-            العودة للرئيسية
-          </button>
+            {/* Room Code */}
+            <div className="mb-6">
+              <label className="text-white/60 text-sm block mb-1">رمز الغرفة</label>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="مثال: ABC123"
+                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 text-lg text-center tracking-widest font-bold"
+                maxLength={6}
+                dir="ltr"
+              />
+            </div>
+
+            {/* Join Button */}
+            <button
+              onClick={handleJoin}
+              disabled={joining}
+              className={`w-full py-4 rounded-xl text-xl font-bold transition-colors ${
+                joining
+                  ? 'bg-gray-600 text-gray-400 cursor-wait'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            >
+              {joining ? 'جاري الانضمام...' : '🎮 انضم'}
+            </button>
+          </div>
         </div>
-      </div>
       </div>
     </WoodyBackground>
   );
