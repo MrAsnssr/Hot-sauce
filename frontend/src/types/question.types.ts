@@ -31,6 +31,7 @@ export interface WhoAndWhoData {
 
 export interface Question {
   id: string;
+  _id?: string; // MongoDB ID
   text: string;
   subjectId: string;
   questionTypeId: string;
@@ -49,6 +50,7 @@ export interface Question {
 
 export interface QuestionType {
   id: string;
+  _id?: string; // MongoDB ID
   name: string;
   nameAr: string;
   description: string;
@@ -64,6 +66,7 @@ export interface QuestionType {
 
 export interface Subject {
   id: string;
+  _id?: string; // MongoDB ID
   name: string;
   nameAr: string;
   description?: string;
