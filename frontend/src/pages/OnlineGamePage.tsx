@@ -78,7 +78,23 @@ const OnlineGamePage: React.FC = () => {
   const loadNextQuestion = async () => {
     try {
       const response = await api.post('/games/temp/question', {});
-      setCurrentQuestion(response.data);
+      const question = response.data;
+      
+      // Ensure the question has the correct structure
+      let formattedQuestion = { ...question };
+      if (!question.id && question._id) {
+        formattedQuestion.id = question._id.toString();
+      }
+      
+      // Ensure options have id field
+      if (formattedQuestion.options && Array.isArray(formattedQuestion.options)) {
+        formattedQuestion.options = formattedQuestion.options.map((opt: any, idx: number) => ({
+          ...opt,
+          id: opt.id || opt._id || `opt-${idx}`,
+        }));
+      }
+      
+      setCurrentQuestion(formattedQuestion);
     } catch (error) {
       // Mock question
       setCurrentQuestion({

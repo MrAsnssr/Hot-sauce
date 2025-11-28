@@ -86,7 +86,12 @@ const LocalGamePage: React.FC = () => {
     
     try {
       const subjectsRes = await api.get('/subjects');
-      setSubjects(subjectsRes.data);
+      // Map _id to id for consistency
+      const mappedSubjects = subjectsRes.data.map((s: any) => ({
+        ...s,
+        id: s._id || s.id,
+      }));
+      setSubjects(mappedSubjects);
     } catch (error) {
       console.error('Error fetching subjects:', error);
       // Use mock data if API fails
@@ -132,18 +137,39 @@ const LocalGamePage: React.FC = () => {
     try {
       // Try to get from API
       const response = await api.post('/games/temp/question', {
-        subjectId: selectedSubject?.id,
+        subjectId: selectedSubject?.id || selectedSubject?._id,
         questionTypeId: selectedType?.id,
       });
       
       // Ensure the question has the correct structure
       const question = response.data;
-      let formattedQuestion = question;
+      let formattedQuestion = { ...question };
+      
+      // Convert _id to id for consistency
       if (!question.id && question._id) {
-        // Convert _id to id for consistency
-        formattedQuestion = { ...question, id: question._id.toString() };
+        formattedQuestion.id = question._id.toString();
       }
       
+      // Ensure options have id field
+      if (formattedQuestion.options && Array.isArray(formattedQuestion.options)) {
+        formattedQuestion.options = formattedQuestion.options.map((opt: any, idx: number) => ({
+          ...opt,
+          id: opt.id || opt._id || `opt-${idx}`,
+        }));
+      }
+      
+      // For fill-blank questions, create options from correctAnswer if needed
+      if (formattedQuestion.questionTypeId === 'fill-blank' && formattedQuestion.correctAnswer && !formattedQuestion.options) {
+        // Generate fake options for fill-blank (correct answer + 3 fake ones)
+        formattedQuestion.options = [
+          { id: '1', text: formattedQuestion.correctAnswer, isCorrect: true },
+          { id: '2', text: 'خيار خاطئ 1', isCorrect: false },
+          { id: '3', text: 'خيار خاطئ 2', isCorrect: false },
+          { id: '4', text: 'خيار خاطئ 3', isCorrect: false },
+        ].sort(() => Math.random() - 0.5); // Shuffle
+      }
+      
+      console.log('Loaded question:', formattedQuestion);
       setCurrentQuestion(formattedQuestion);
       setPhase('show_question');
       setTimeUp(false);
@@ -172,20 +198,20 @@ const LocalGamePage: React.FC = () => {
   const handleTeamAAnswer = (answerId: string) => {
     if (teamAAnswer || timeUp) return;
     setTeamAAnswer(answerId);
-    checkBothAnswered();
   };
 
   const handleTeamBAnswer = (answerId: string) => {
     if (teamBAnswer || timeUp) return;
     setTeamBAnswer(answerId);
-    checkBothAnswered();
   };
 
-  const checkBothAnswered = () => {
-    if (teamAAnswer && teamBAnswer) {
-      setPhase('show_answer');
+  // Check if both teams answered - use effect to properly detect state changes
+  useEffect(() => {
+    if (teamAAnswer && teamBAnswer && phase === 'show_question') {
+      // Both teams answered, but don't auto-advance - let them click the button
+      console.log('Both teams have answered');
     }
-  };
+  }, [teamAAnswer, teamBAnswer, phase]);
 
   const handleTimeUp = useCallback(() => {
     if (!timeUp) {

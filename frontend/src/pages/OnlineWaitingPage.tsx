@@ -63,7 +63,12 @@ const OnlineWaitingPage: React.FC = () => {
     const fetchSubjects = async () => {
       try {
         const subjectsRes = await api.get('/subjects');
-        setSubjects(subjectsRes.data);
+        // Map _id to id for consistency
+        const mappedSubjects = subjectsRes.data.map((s: any) => ({
+          ...s,
+          id: s._id || s.id,
+        }));
+        setSubjects(mappedSubjects);
       } catch (error) {
         console.error('Error fetching subjects:', error);
       }

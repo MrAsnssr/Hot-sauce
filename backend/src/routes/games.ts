@@ -36,27 +36,16 @@ router.post('/temp/question', async (req: Request, res: Response) => {
       }
     }
     
-    // Handle questionTypeId - could be ObjectId or string (hardcoded ID like "multiple-choice")
+    // Handle questionTypeId - could be ObjectId or string (hardcoded ID like "four-options", "fill-blank", etc.)
     if (questionTypeId) {
       // Check if it's a valid ObjectId
       if (mongoose.Types.ObjectId.isValid(questionTypeId)) {
         filter.questionTypeId = new mongoose.Types.ObjectId(questionTypeId);
       } else {
-        // Try to find question type by matching the string ID with name field
-        // The hardcoded IDs like "multiple-choice" might match the name field
-        const questionType = await QuestionType.findOne({
-          $or: [
-            { name: { $regex: questionTypeId, $options: 'i' } },
-            { nameAr: { $regex: questionTypeId, $options: 'i' } },
-            { _id: questionTypeId }
-          ]
-        });
-        if (questionType) {
-          filter.questionTypeId = questionType._id;
-        } else {
-          // If can't find question type, don't filter by it
-          console.warn(`Question type not found: ${questionTypeId}`);
-        }
+        // Hardcoded question type IDs are stored directly as strings in the question documents
+        // So we can filter directly by the string
+        filter.questionTypeId = questionTypeId;
+        console.log(`Using hardcoded questionTypeId: ${questionTypeId}`);
       }
     }
     

@@ -206,9 +206,14 @@ const OnlineCreatePage: React.FC = () => {
     
     try {
       const subjectsRes = await api.get('/subjects');
-      setSubjects(subjectsRes.data);
+      // Map _id to id for consistency
+      const mappedSubjects = subjectsRes.data.map((s: any) => ({
+        ...s,
+        id: s._id || s.id,
+      }));
+      setSubjects(mappedSubjects);
       // Select all by default
-      setSelectedSubjects(subjectsRes.data.map((s: Subject) => s.id));
+      setSelectedSubjects(mappedSubjects.map((s: Subject) => s.id));
     } catch (error) {
       console.error('Error fetching subjects:', error);
       // Mock data
