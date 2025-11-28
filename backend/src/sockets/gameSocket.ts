@@ -54,19 +54,22 @@ export const setupGameSocket = (io: Server) => {
       // For room-based games (using room codes)
       // Emit player joined event to all in room (including sender so host sees it)
       if (playerName) {
-        console.log(`Player ${playerName} (${socket.id}) joined room ${gameId}, isHost: ${isHost}`);
+        console.log(`🔵 [BACKEND] Player ${playerName} (${socket.id}) joined room ${gameId}, isHost: ${isHost}`);
         // Emit to all in room including the sender
         io.to(gameId).emit('player-joined', { 
           socketId: socket.id,
           playerName,
           isHost 
         });
-        console.log(`Emitted player-joined to room ${gameId}`);
-      }
-      
-      // Request game config from host if not host
-      if (!isHost) {
-        socket.emit('request-game-config');
+        console.log(`🔵 [BACKEND] Emitted player-joined to room ${gameId}`);
+        
+        // If player (not host), wait a bit before requesting config to let host add them first
+        if (!isHost) {
+          setTimeout(() => {
+            console.log(`🔵 [BACKEND] Player requesting config after join`);
+            io.to(gameId).emit('host-send-config');
+          }, 300); // Wait 300ms for host to process player-joined
+        }
       }
     });
     
@@ -74,16 +77,21 @@ export const setupGameSocket = (io: Server) => {
     socket.on('update-game-config', (config: any) => {
       const gameId = (socket as any).gameId;
       if (gameId) {
-        console.log(`Broadcasting game config to room ${gameId}`);
+        console.log(`🔵 [BACKEND] Broadcasting game config to room ${gameId}`);
+        console.log(`🔵 [BACKEND] Config players count:`, config.players?.length || 0);
         // Broadcast to all players in room (including sender for testing, but host shouldn't need it)
         io.to(gameId).emit('game-config-updated', config);
+        console.log(`🔵 [BACKEND] Config broadcasted to room ${gameId}`);
+      } else {
+        console.error(`🔵 [BACKEND] No gameId found for config update`);
       }
     });
     
-    // Handle game config request
+    // Handle game config request (deprecated - now handled in join-game)
     socket.on('request-game-config', () => {
       const gameId = (socket as any).gameId;
       if (gameId) {
+        console.log(`🔵 [BACKEND] Direct config request for room ${gameId}`);
         // Request host to send config
         io.to(gameId).emit('host-send-config');
       }

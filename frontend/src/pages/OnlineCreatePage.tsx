@@ -82,9 +82,10 @@ const OnlineCreatePage: React.FC = () => {
 
     // Listen for players joining
     newSocket.on('player-joined', (data: { socketId: string; playerName: string; isHost?: boolean }) => {
-      console.log('Player joined event received:', data);
+      console.log('🟢 [HOST] Player joined event received:', data);
       // Don't add host to player list
       if (data.isHost) {
+        console.log('🟢 [HOST] Ignoring host join event');
         return;
       }
       const newPlayer: JoinedPlayer = {
@@ -94,27 +95,32 @@ const OnlineCreatePage: React.FC = () => {
         socketId: data.socketId,
       };
       setJoinedPlayers((prev) => {
+        console.log('🟢 [HOST] Current players before adding:', prev);
         // Check if player already exists
         if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
-          console.log('Player already exists, skipping');
+          console.log('🟢 [HOST] Player already exists, skipping');
           return prev;
         }
-        console.log('Adding new player:', newPlayer);
+        console.log('🟢 [HOST] Adding new player:', newPlayer);
         const updated = [...prev, newPlayer];
-        // Broadcast updated player list to all players
+        console.log('🟢 [HOST] Updated players list:', updated);
+        // Broadcast updated player list to all players after state is updated
         setTimeout(() => {
           if (newSocket.connected) {
+            // Use the updated list directly
             const config = {
               subjects: selectedSubjects,
               questionTypes: selectedTypes,
               extraSauceEnabled,
               teams,
-              players: updated,
+              players: updated, // Use the updated array directly
             };
-            console.log('Broadcasting updated player list:', updated);
+            console.log('🟢 [HOST] Broadcasting updated player list to all:', updated);
             newSocket.emit('update-game-config', config);
+          } else {
+            console.error('🟢 [HOST] Socket not connected, cannot broadcast');
           }
-        }, 100);
+        }, 200); // Increased delay to ensure state is set
         return updated;
       });
     });
@@ -126,7 +132,7 @@ const OnlineCreatePage: React.FC = () => {
 
     // Listen for config request from players
     newSocket.on('host-send-config', () => {
-      console.log('Host received config request, broadcasting config');
+      console.log('🟡 [HOST] Received config request from player');
       // Use a function to get the latest state
       setJoinedPlayers((currentPlayers) => {
         const config = {
@@ -136,8 +142,13 @@ const OnlineCreatePage: React.FC = () => {
           teams,
           players: currentPlayers,
         };
-        console.log('Broadcasting config with players:', currentPlayers);
-        newSocket.emit('update-game-config', config);
+        console.log('🟡 [HOST] Broadcasting config with players:', currentPlayers);
+        console.log('🟡 [HOST] Player count:', currentPlayers.length);
+        if (newSocket.connected) {
+          newSocket.emit('update-game-config', config);
+        } else {
+          console.error('🟡 [HOST] Socket not connected, cannot send config');
+        }
         return currentPlayers; // Don't change state
       });
     });

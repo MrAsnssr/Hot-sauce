@@ -92,17 +92,35 @@ const OnlineWaitingPage: React.FC = () => {
     // Listen for game config updates from host
     newSocket.on('game-config-updated', (config: any) => {
       try {
-        console.log('Received game config:', config);
+        console.log('🔵 [PLAYER] Received game config:', config);
+        console.log('🔵 [PLAYER] Current players before update:', joinedPlayers);
         setSelectedSubjects(config.subjects || []);
         setSelectedTypes(config.questionTypes || []);
         setExtraSauceEnabled(config.extraSauceEnabled ?? true);
-        // Only update players if config has players, otherwise keep current list
-        if (config.players && Array.isArray(config.players) && config.players.length > 0) {
-          setJoinedPlayers(config.players);
+        // Merge players - don't overwrite if config has fewer players (race condition protection)
+        if (config.players && Array.isArray(config.players)) {
+          setJoinedPlayers((prev) => {
+            // If config has players, use them, but merge with existing to avoid losing data
+            if (config.players.length > 0) {
+              console.log('🔵 [PLAYER] Updating players from config:', config.players);
+              // Merge: keep existing players that aren't in config, add new ones from config
+              const merged = [...prev];
+              config.players.forEach((newPlayer: JoinedPlayer) => {
+                if (!merged.some(p => p.socketId === newPlayer.socketId || p.name === newPlayer.name)) {
+                  merged.push(newPlayer);
+                }
+              });
+              console.log('🔵 [PLAYER] Merged players:', merged);
+              return merged;
+            } else {
+              console.log('🔵 [PLAYER] Config has no players, keeping current:', prev);
+              return prev; // Keep current players if config is empty
+            }
+          });
         }
         setConfigLoaded(true);
       } catch (error) {
-        console.error('Error updating game config:', error);
+        console.error('❌ [PLAYER] Error updating game config:', error);
       }
     });
     
