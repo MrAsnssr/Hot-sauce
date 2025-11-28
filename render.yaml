@@ -1,0 +1,22 @@
+static:
+  name: hot-sauce-frontend
+  buildCommand: npm install && npm run build
+  publishDirectory: dist
+  envVars:
+    - key: VITE_API_URL
+      value: https://arabic-trivia-backend.onrender.com/api
+  headers:
+    - path: /*
+      name: X-Content-Type-Options
+      value: nosniff
+    - path: /*
+      name: X-Frame-Options
+      value: DENY
+    - path: /*
+      name: Content-Security-Policy
+      value: "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://hot-sauce.onrender.com https://cdn.socket.io; connect-src 'self' https://hot-sauce.onrender.com ws://localhost:5000 wss://hot-sauce.onrender.com http://localhost:5000; default-src 'self';"
+  routes:
+    - type: rewrite
+      source: /*
+      destination: /index.html
+      continue: false
