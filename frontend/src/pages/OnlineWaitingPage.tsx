@@ -74,8 +74,8 @@ const OnlineWaitingPage: React.FC = () => {
         sessionStorage.setItem('onlineGame', JSON.stringify(gameData));
       }
       
-      // Don't disconnect socket - let the game page handle it
-      // Just navigate
+      socket.disconnect();
+      // Navigate to the game page
       navigate(`/online/game/${roomCode}`);
     });
 
@@ -88,7 +88,7 @@ const OnlineWaitingPage: React.FC = () => {
       if (data.action === 'start') {
         console.log('🎮 Game start action received');
         clearInterval(dotsInterval);
-        // Don't disconnect - let game page handle it
+        socket.disconnect();
         navigate(`/online/game/${roomCode}`);
       }
     });
@@ -111,8 +111,9 @@ const OnlineWaitingPage: React.FC = () => {
 
     return () => {
       clearInterval(dotsInterval);
-      // Don't disconnect socket here - it might still be needed
-      // The game page will create its own connection anyway
+      if (socket.connected) {
+        socket.disconnect();
+      }
     };
   }, [roomCode, navigate, playerName]);
 

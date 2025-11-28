@@ -27,6 +27,7 @@ const OnlineCreatePage: React.FC = () => {
   const [roomCode, setRoomCode] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [startingGame, setStartingGame] = useState(false);
   
   // Settings Mode
   const [showSettings, setShowSettings] = useState(false);
@@ -42,6 +43,17 @@ const OnlineCreatePage: React.FC = () => {
   // Players
   const [players, setPlayers] = useState<Player[]>([]);
   const [hostName, setHostName] = useState(() => sessionStorage.getItem('playerName') || 'المضيف');
+  const latestConfigRef = useRef<{ selectedSubjects: string[]; players: Player[] }>({
+    selectedSubjects: [],
+    players: [],
+  });
+
+  useEffect(() => {
+    latestConfigRef.current = {
+      selectedSubjects,
+      players,
+    };
+  }, [selectedSubjects, players]);
 
   // Initialize Room
   useEffect(() => {
@@ -111,6 +123,24 @@ const OnlineCreatePage: React.FC = () => {
       setPlayers(prev => prev.filter(p => p.socketId !== data.socketId));
     });
 
+    // Listen for game start confirmation (host should also navigate when server confirms)
+    newSocket.on('game-started', (data: { teams: any[] }) => {
+      console.log('🚀 Host received game-started confirmation', data);
+      const existingConfig = sessionStorage.getItem('onlineGame');
+      if (!existingConfig) {
+        const latest = latestConfigRef.current;
+        const fallbackGameData = {
+          roomCode: currentCode,
+          isHost: true,
+          teams: data.teams,
+          selectedSubjects: latest.selectedSubjects,
+          players: latest.players.map(p => ({ id: p.socketId, name: p.name })),
+        };
+        sessionStorage.setItem('onlineGame', JSON.stringify(fallbackGameData));
+      }
+      navigate(`/online/game/${currentCode}`);
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -153,7 +183,8 @@ const OnlineCreatePage: React.FC = () => {
   };
 
   const handleStartGame = () => {
-    if (!socket) return;
+    if (!socket || startingGame) return;
+    setStartingGame(true);
 
     // Distribute players to teams (simple round-robin for now)
     // Host is usually in Team 1 or spectator, but let's assign everyone
@@ -181,17 +212,12 @@ const OnlineCreatePage: React.FC = () => {
     // Save to session for persistence
     sessionStorage.setItem('onlineGame', JSON.stringify(gameConfig));
     
-    // Emit start game event - IMPORTANT: Wait a bit before navigating to ensure event is broadcast
+    // Emit start game event - host waits for server confirmation before navigating
     socket.emit('update-game-config', gameConfig); // Notify backend of teams
     socket.emit('start-game', {
       gameId: roomCode,
       teams,
     });
-    
-    // Wait a moment to ensure the backend broadcasts the event to all players
-    setTimeout(() => {
-      navigate(`/online/game/${roomCode}`);
-    }, 300);
   };
 
   return (
