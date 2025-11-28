@@ -95,11 +95,27 @@ const OnlineCreatePage: React.FC = () => {
       };
       setJoinedPlayers((prev) => {
         // Check if player already exists
-        if (prev.some(p => p.socketId === data.socketId)) {
+        if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
+          console.log('Player already exists, skipping');
           return prev;
         }
         console.log('Adding new player:', newPlayer);
-        return [...prev, newPlayer];
+        const updated = [...prev, newPlayer];
+        // Broadcast updated player list to all players
+        setTimeout(() => {
+          if (newSocket.connected) {
+            const config = {
+              subjects: selectedSubjects,
+              questionTypes: selectedTypes,
+              extraSauceEnabled,
+              teams,
+              players: updated,
+            };
+            console.log('Broadcasting updated player list:', updated);
+            newSocket.emit('update-game-config', config);
+          }
+        }, 100);
+        return updated;
       });
     });
 
@@ -111,16 +127,19 @@ const OnlineCreatePage: React.FC = () => {
     // Listen for config request from players
     newSocket.on('host-send-config', () => {
       console.log('Host received config request, broadcasting config');
-      // Broadcast current game config to all players
-      const config = {
-        subjects: selectedSubjects,
-        questionTypes: selectedTypes,
-        extraSauceEnabled,
-        teams,
-        players: joinedPlayers,
-      };
-      console.log('Broadcasting config:', config);
-      newSocket.emit('update-game-config', config);
+      // Use a function to get the latest state
+      setJoinedPlayers((currentPlayers) => {
+        const config = {
+          subjects: selectedSubjects,
+          questionTypes: selectedTypes,
+          extraSauceEnabled,
+          teams,
+          players: currentPlayers,
+        };
+        console.log('Broadcasting config with players:', currentPlayers);
+        newSocket.emit('update-game-config', config);
+        return currentPlayers; // Don't change state
+      });
     });
 
     setSocket(newSocket);
@@ -130,20 +149,26 @@ const OnlineCreatePage: React.FC = () => {
     };
   }, []);
 
-    // Broadcast config when it changes
+    // Broadcast config when settings change (but not when players change to avoid loops)
   useEffect(() => {
-    if (socket && socket.connected && joinedPlayers.length > 0) {
-      const config = {
-        subjects: selectedSubjects,
-        questionTypes: selectedTypes,
-        extraSauceEnabled,
-        teams,
-        players: joinedPlayers,
-      };
-      console.log('Broadcasting config update:', config);
-      socket.emit('update-game-config', config);
+    if (socket && socket.connected && joinedPlayers.length >= 0) {
+      // Use setTimeout to ensure we have the latest state
+      setTimeout(() => {
+        setJoinedPlayers((currentPlayers) => {
+          const config = {
+            subjects: selectedSubjects,
+            questionTypes: selectedTypes,
+            extraSauceEnabled,
+            teams,
+            players: currentPlayers,
+          };
+          console.log('Broadcasting config update with players:', currentPlayers);
+          socket.emit('update-game-config', config);
+          return currentPlayers; // Don't change state
+        });
+      }, 100);
     }
-  }, [selectedSubjects, selectedTypes, extraSauceEnabled, joinedPlayers, socket]);
+  }, [selectedSubjects, selectedTypes, extraSauceEnabled, socket]); // Removed joinedPlayers from deps
 
   const fetchGameData = async () => {
     // Question types are hardcoded

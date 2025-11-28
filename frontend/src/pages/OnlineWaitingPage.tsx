@@ -95,10 +95,31 @@ const OnlineWaitingPage: React.FC = () => {
         setSelectedSubjects(config.subjects || []);
         setSelectedTypes(config.questionTypes || []);
         setExtraSauceEnabled(config.extraSauceEnabled ?? true);
-        setJoinedPlayers(config.players || []);
+        // Only update players if config has players, otherwise keep current list
+        if (config.players && Array.isArray(config.players) && config.players.length > 0) {
+          setJoinedPlayers(config.players);
+        }
         setConfigLoaded(true);
       } catch (error) {
         console.error('Error updating game config:', error);
+      }
+    });
+    
+    // Also listen for player-joined events (in case host sends them separately)
+    newSocket.on('player-joined', (data: { socketId: string; playerName: string; isHost?: boolean }) => {
+      console.log('Player joined event received on waiting page:', data);
+      if (!data.isHost) {
+        setJoinedPlayers((prev) => {
+          // Check if player already exists
+          if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
+            return prev;
+          }
+          return [...prev, {
+            id: `player-${Date.now()}-${Math.random()}`,
+            name: data.playerName,
+            teamId: null,
+          }];
+        });
       }
     });
 
