@@ -5,6 +5,7 @@ import { Subject, QuestionType } from '../types/question.types';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
 import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
+import { io, Socket } from 'socket.io-client';
 
 interface Team {
   id: string;
@@ -16,6 +17,7 @@ interface JoinedPlayer {
   id: string;
   name: string;
   teamId: string | null;
+  socketId?: string;
 }
 
 const TEAM_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'];
@@ -25,6 +27,7 @@ const OnlineCreatePage: React.FC = () => {
   const [roomCode, setRoomCode] = useState('');
   const [roomLink, setRoomLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
   
   // Game configuration
   const [teams] = useState<Team[]>([
@@ -53,8 +56,75 @@ const OnlineCreatePage: React.FC = () => {
     // Fetch game data
     fetchGameData();
     
-    // TODO: Connect to socket and listen for players joining
+    // Connect to socket
+    const socketUrl = (import.meta.env && import.meta.env.VITE_SOCKET_URL) || 'http://localhost:5000';
+    const newSocket = io(socketUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+    });
+
+    newSocket.on('connect', () => {
+      // Join as host
+      newSocket.emit('join-game', {
+        gameId: code,
+        playerName: 'المضيف',
+        isHost: true,
+      });
+    });
+
+    // Listen for players joining
+    newSocket.on('player-joined', (data: { socketId: string; playerName: string }) => {
+      const newPlayer: JoinedPlayer = {
+        id: `player-${Date.now()}-${Math.random()}`,
+        name: data.playerName,
+        teamId: null,
+        socketId: data.socketId,
+      };
+      setJoinedPlayers((prev) => {
+        // Check if player already exists
+        if (prev.some(p => p.socketId === data.socketId)) {
+          return prev;
+        }
+        return [...prev, newPlayer];
+      });
+    });
+
+    // Listen for players leaving
+    newSocket.on('player-left', (data: { socketId: string; playerName: string }) => {
+      setJoinedPlayers((prev) => prev.filter(p => p.socketId !== data.socketId));
+    });
+
+    // Listen for config request from players
+    newSocket.on('host-send-config', () => {
+      // Broadcast current game config to all players
+      newSocket.emit('update-game-config', {
+        subjects: selectedSubjects,
+        questionTypes: selectedTypes,
+        extraSauceEnabled,
+        teams,
+        players: joinedPlayers,
+      });
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, []);
+
+  // Broadcast config when it changes
+  useEffect(() => {
+    if (socket && socket.connected) {
+      socket.emit('update-game-config', {
+        subjects: selectedSubjects,
+        questionTypes: selectedTypes,
+        extraSauceEnabled,
+        teams,
+        players: joinedPlayers,
+      });
+    }
+  }, [selectedSubjects, selectedTypes, extraSauceEnabled, joinedPlayers, socket]);
 
   const fetchGameData = async () => {
     // Question types are hardcoded
@@ -130,6 +200,16 @@ const OnlineCreatePage: React.FC = () => {
       },
     };
     sessionStorage.setItem('gameConfig', JSON.stringify(gameConfig));
+    
+    // Notify all players that game is starting
+    if (socket) {
+      socket.emit('game-action', {
+        gameId: roomCode,
+        action: 'start',
+        payload: gameConfig,
+      });
+    }
+    
     navigate('/online/game');
   };
 
@@ -311,4 +391,3 @@ const OnlineCreatePage: React.FC = () => {
 };
 
 export default OnlineCreatePage;
-

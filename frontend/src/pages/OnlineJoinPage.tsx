@@ -32,8 +32,7 @@ const OnlineJoinPage: React.FC = () => {
       sessionStorage.setItem('roomCode', code.toUpperCase());
       sessionStorage.setItem('isHost', 'false');
 
-      // TODO: Connect to socket and join room
-      // For now, navigate to waiting room
+      // Navigate to waiting room (socket connection will happen there)
       navigate('/online/waiting');
     } catch (err) {
       setError('فشل الانضمام للغرفة');
@@ -113,4 +112,3 @@ const OnlineJoinPage: React.FC = () => {
 };
 
 export default OnlineJoinPage;
-

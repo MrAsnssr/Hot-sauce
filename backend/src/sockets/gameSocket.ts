@@ -13,7 +13,11 @@ export const setupGameSocket = (io: Server) => {
     console.log('Client connected:', socket.id);
 
     // Join game room
-    socket.on('join-game', async (gameId: string) => {
+    socket.on('join-game', async (data: string | { gameId: string; playerName?: string; isHost?: boolean }) => {
+      const gameId = typeof data === 'string' ? data : data.gameId;
+      const playerName = typeof data === 'object' ? data.playerName : undefined;
+      const isHost = typeof data === 'object' ? data.isHost : false;
+      
       socket.join(gameId);
       
       if (!gameRooms.has(gameId)) {
@@ -21,6 +25,11 @@ export const setupGameSocket = (io: Server) => {
       }
       
       gameRooms.get(gameId)!.sockets.add(socket.id);
+      
+      // Store player info in socket data
+      (socket as any).playerName = playerName;
+      (socket as any).isHost = isHost;
+      (socket as any).gameId = gameId;
       
       // Check if it's a local game ID (starts with "local-")
       if (gameId.startsWith('local-')) {
@@ -42,29 +51,37 @@ export const setupGameSocket = (io: Server) => {
         return;
       }
       
-      // Try to find game in database
-      try {
-        const game = await Game.findById(gameId);
-        if (game) {
-          socket.emit('game-state', game);
-          io.to(gameId).emit('player-joined', { socketId: socket.id });
-        }
-      } catch (error) {
-        // Invalid ObjectId or game not found - use local state
-        const localGameState = {
-          _id: gameId,
-          status: 'waiting',
-          teams: [],
-          currentRound: 0,
-          rounds: [],
-          extraSauceEnabled: true,
-          pointDistribution: {
-            correct: 10,
-            timeBonus: 5,
-            difficultyMultiplier: true,
-          },
-        };
-        socket.emit('game-state', localGameState);
+      // For room-based games (using room codes)
+      // Emit player joined event to all in room
+      if (playerName) {
+        io.to(gameId).emit('player-joined', { 
+          socketId: socket.id,
+          playerName,
+          isHost 
+        });
+      }
+      
+      // Request game config from host if not host
+      if (!isHost) {
+        socket.emit('request-game-config');
+      }
+    });
+    
+    // Handle game config updates from host
+    socket.on('update-game-config', (config: any) => {
+      const gameId = (socket as any).gameId;
+      if (gameId) {
+        // Broadcast to all players except sender
+        socket.to(gameId).emit('game-config-updated', config);
+      }
+    });
+    
+    // Handle game config request
+    socket.on('request-game-config', () => {
+      const gameId = (socket as any).gameId;
+      if (gameId) {
+        // Request host to send config
+        io.to(gameId).emit('host-send-config');
       }
     });
 
@@ -174,12 +191,20 @@ export const setupGameSocket = (io: Server) => {
 
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
+      const gameId = (socket as any).gameId;
+      const playerName = (socket as any).playerName;
+      
+      // Notify others in room
+      if (gameId && playerName) {
+        io.to(gameId).emit('player-left', { socketId: socket.id, playerName });
+      }
+      
       // Clean up rooms
-      for (const [gameId, room] of gameRooms.entries()) {
+      for (const [roomId, room] of gameRooms.entries()) {
         if (room.sockets.has(socket.id)) {
           room.sockets.delete(socket.id);
           if (room.sockets.size === 0) {
-            gameRooms.delete(gameId);
+            gameRooms.delete(roomId);
           }
         }
       }
