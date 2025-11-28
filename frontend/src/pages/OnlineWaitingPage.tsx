@@ -93,31 +93,42 @@ const OnlineWaitingPage: React.FC = () => {
     newSocket.on('game-config-updated', (config: any) => {
       try {
         console.log('🔵 [PLAYER] Received game config:', config);
+        console.log('🔵 [PLAYER] Config players:', config.players);
         console.log('🔵 [PLAYER] Current players before update:', joinedPlayers);
         setSelectedSubjects(config.subjects || []);
         setSelectedTypes(config.questionTypes || []);
         setExtraSauceEnabled(config.extraSauceEnabled ?? true);
-        // Merge players - don't overwrite if config has fewer players (race condition protection)
-        if (config.players && Array.isArray(config.players)) {
-          setJoinedPlayers((prev) => {
-            // If config has players, use them, but merge with existing to avoid losing data
+        // CRITICAL: Only update players if config has players AND it's not empty
+        // Never overwrite with empty array - always merge or keep existing
+        setJoinedPlayers((prev) => {
+          if (config.players && Array.isArray(config.players)) {
             if (config.players.length > 0) {
-              console.log('🔵 [PLAYER] Updating players from config:', config.players);
-              // Merge: keep existing players that aren't in config, add new ones from config
+              console.log('🔵 [PLAYER] Config has players, merging:', config.players);
+              // Merge: combine existing and new players, avoiding duplicates
               const merged = [...prev];
               config.players.forEach((newPlayer: JoinedPlayer) => {
-                if (!merged.some(p => p.socketId === newPlayer.socketId || p.name === newPlayer.name)) {
+                const exists = merged.some(p => 
+                  (p.socketId && newPlayer.socketId && p.socketId === newPlayer.socketId) || 
+                  p.name === newPlayer.name
+                );
+                if (!exists) {
                   merged.push(newPlayer);
+                  console.log('🔵 [PLAYER] Added new player to merged list:', newPlayer.name);
                 }
               });
-              console.log('🔵 [PLAYER] Merged players:', merged);
+              console.log('🔵 [PLAYER] Final merged players:', merged);
               return merged;
             } else {
-              console.log('🔵 [PLAYER] Config has no players, keeping current:', prev);
-              return prev; // Keep current players if config is empty
+              // Config has empty players array - keep existing players
+              console.log('🔵 [PLAYER] Config has EMPTY players array, KEEPING current players:', prev);
+              return prev;
             }
-          });
-        }
+          } else {
+            // No players in config - keep existing
+            console.log('🔵 [PLAYER] No players in config, keeping current:', prev);
+            return prev;
+          }
+        });
         setConfigLoaded(true);
       } catch (error) {
         console.error('❌ [PLAYER] Error updating game config:', error);

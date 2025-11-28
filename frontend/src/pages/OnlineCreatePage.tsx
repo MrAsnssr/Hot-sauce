@@ -104,23 +104,29 @@ const OnlineCreatePage: React.FC = () => {
         console.log('🟢 [HOST] Adding new player:', newPlayer);
         const updated = [...prev, newPlayer];
         console.log('🟢 [HOST] Updated players list:', updated);
+        console.log('🟢 [HOST] Updated players count:', updated.length);
         // Broadcast updated player list to all players after state is updated
+        // Use multiple timeouts to ensure state is definitely set
         setTimeout(() => {
           if (newSocket.connected) {
-            // Use the updated list directly
-            const config = {
-              subjects: selectedSubjects,
-              questionTypes: selectedTypes,
-              extraSauceEnabled,
-              teams,
-              players: updated, // Use the updated array directly
-            };
-            console.log('🟢 [HOST] Broadcasting updated player list to all:', updated);
-            newSocket.emit('update-game-config', config);
+            // Get the latest state again to be absolutely sure
+            setJoinedPlayers((latestPlayers) => {
+              const config = {
+                subjects: selectedSubjects,
+                questionTypes: selectedTypes,
+                extraSauceEnabled,
+                teams,
+                players: latestPlayers.length > 0 ? latestPlayers : updated, // Fallback to updated if latest is empty
+              };
+              console.log('🟢 [HOST] Broadcasting updated player list to all:', config.players);
+              console.log('🟢 [HOST] Broadcasting player count:', config.players.length);
+              newSocket.emit('update-game-config', config);
+              return latestPlayers; // Don't change state
+            });
           } else {
             console.error('🟢 [HOST] Socket not connected, cannot broadcast');
           }
-        }, 200); // Increased delay to ensure state is set
+        }, 500); // Increased delay significantly to ensure state is set
         return updated;
       });
     });
@@ -133,24 +139,28 @@ const OnlineCreatePage: React.FC = () => {
     // Listen for config request from players
     newSocket.on('host-send-config', () => {
       console.log('🟡 [HOST] Received config request from player');
-      // Use a function to get the latest state
-      setJoinedPlayers((currentPlayers) => {
-        const config = {
-          subjects: selectedSubjects,
-          questionTypes: selectedTypes,
-          extraSauceEnabled,
-          teams,
-          players: currentPlayers,
-        };
-        console.log('🟡 [HOST] Broadcasting config with players:', currentPlayers);
-        console.log('🟡 [HOST] Player count:', currentPlayers.length);
-        if (newSocket.connected) {
-          newSocket.emit('update-game-config', config);
-        } else {
-          console.error('🟡 [HOST] Socket not connected, cannot send config');
-        }
-        return currentPlayers; // Don't change state
-      });
+      // Use a function to get the latest state - but also add a small delay to ensure state is updated
+      setTimeout(() => {
+        setJoinedPlayers((currentPlayers) => {
+          const config = {
+            subjects: selectedSubjects,
+            questionTypes: selectedTypes,
+            extraSauceEnabled,
+            teams,
+            players: currentPlayers,
+          };
+          console.log('🟡 [HOST] Broadcasting config with players:', currentPlayers);
+          console.log('🟡 [HOST] Player count:', currentPlayers.length);
+          console.log('🟡 [HOST] Player names:', currentPlayers.map(p => p.name));
+          if (newSocket.connected) {
+            newSocket.emit('update-game-config', config);
+            console.log('🟡 [HOST] Config emitted successfully');
+          } else {
+            console.error('🟡 [HOST] Socket not connected, cannot send config');
+          }
+          return currentPlayers; // Don't change state
+        });
+      }, 100); // Small delay to ensure player-joined handler has updated state
     });
 
     setSocket(newSocket);

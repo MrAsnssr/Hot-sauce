@@ -63,12 +63,12 @@ export const setupGameSocket = (io: Server) => {
         });
         console.log(`🔵 [BACKEND] Emitted player-joined to room ${gameId}`);
         
-        // If player (not host), wait a bit before requesting config to let host add them first
+        // If player (not host), wait longer before requesting config to let host add them first
         if (!isHost) {
           setTimeout(() => {
-            console.log(`🔵 [BACKEND] Player requesting config after join`);
+            console.log(`🔵 [BACKEND] Player requesting config after join (delayed)`);
             io.to(gameId).emit('host-send-config');
-          }, 300); // Wait 300ms for host to process player-joined
+          }, 800); // Wait 800ms for host to process player-joined and update state
         }
       }
     });
