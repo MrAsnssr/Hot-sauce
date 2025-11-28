@@ -16,11 +16,9 @@ const getApiUrl = (): string => {
     return '/api';
   }
   
-  // In production on Render - TRY THESE URLs
-  // Update this with your actual backend URL from Render dashboard
-  const backendUrl = 'https://arabic-trivia-backend.onrender.com/api';
+  // In production on Render
+  const backendUrl = 'https://hot-sauce.onrender.com/api';
   console.log('🌐 Production mode - using backend:', backendUrl);
-  console.log('🔗 If API fails, check your Render backend URL and update api.ts');
   return backendUrl;
 };
 
