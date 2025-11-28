@@ -13,4 +13,4 @@ static:
     - type: rewrite
       source: /*
       destination: /index.html
-
+      continue: false
