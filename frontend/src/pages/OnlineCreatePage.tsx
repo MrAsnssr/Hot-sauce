@@ -181,14 +181,17 @@ const OnlineCreatePage: React.FC = () => {
     // Save to session for persistence
     sessionStorage.setItem('onlineGame', JSON.stringify(gameConfig));
     
-    // Emit start game event
+    // Emit start game event - IMPORTANT: Wait a bit before navigating to ensure event is broadcast
     socket.emit('update-game-config', gameConfig); // Notify backend of teams
     socket.emit('start-game', {
       gameId: roomCode,
       teams,
     });
     
-    navigate(`/online/game/${roomCode}`);
+    // Wait a moment to ensure the backend broadcasts the event to all players
+    setTimeout(() => {
+      navigate(`/online/game/${roomCode}`);
+    }, 300);
   };
 
   return (

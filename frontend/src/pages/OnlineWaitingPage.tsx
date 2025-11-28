@@ -43,8 +43,10 @@ const OnlineWaitingPage: React.FC = () => {
       // Only join once
       if (!hasJoined) {
         hasJoined = true;
+        const code = roomCode.toUpperCase();
+        console.log(`🔌 Joining game room: ${code} as player: ${playerName}`);
         socket.emit('join-game', {
-          gameId: roomCode.toUpperCase(),
+          gameId: code,
           playerName: playerName,
           isHost: false,
         });
@@ -57,10 +59,23 @@ const OnlineWaitingPage: React.FC = () => {
       setError('فشل الاتصال بالخادم. يرجى التأكد من أن المضيف متصل.');
     });
 
-    socket.on('game-started', () => {
-      console.log('🎮 Game started, navigating to game page');
+    socket.on('game-started', (data?: { teams?: any[] }) => {
+      console.log('🎮 Game started event received, navigating to game page', data);
       clearInterval(dotsInterval);
-      socket.disconnect();
+      
+      // Save game data if provided
+      if (data?.teams) {
+        const gameData = {
+          roomCode,
+          isHost: false,
+          teams: data.teams,
+          players: [],
+        };
+        sessionStorage.setItem('onlineGame', JSON.stringify(gameData));
+      }
+      
+      // Don't disconnect socket - let the game page handle it
+      // Just navigate
       navigate(`/online/game/${roomCode}`);
     });
 
@@ -73,16 +88,31 @@ const OnlineWaitingPage: React.FC = () => {
       if (data.action === 'start') {
         console.log('🎮 Game start action received');
         clearInterval(dotsInterval);
-        socket.disconnect();
+        // Don't disconnect - let game page handle it
         navigate(`/online/game/${roomCode}`);
+      }
+    });
+
+    // Also listen for config updates that might indicate game is starting
+    socket.on('game-config-updated', (config: any) => {
+      console.log('📋 Game config updated in waiting page', config);
+      // If teams are provided, game might be starting
+      if (config.teams && config.teams.length > 0) {
+        // Save config but don't navigate yet - wait for explicit game-started
+        const gameData = {
+          roomCode,
+          isHost: false,
+          teams: config.teams,
+          players: config.players || [],
+        };
+        sessionStorage.setItem('onlineGame', JSON.stringify(gameData));
       }
     });
 
     return () => {
       clearInterval(dotsInterval);
-      if (socket.connected) {
-        socket.disconnect();
-      }
+      // Don't disconnect socket here - it might still be needed
+      // The game page will create its own connection anyway
     };
   }, [roomCode, navigate, playerName]);
 

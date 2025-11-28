@@ -159,7 +159,12 @@ export const setupGameSocket = (io: Server) => {
         room.subjectPickerTeamId = teams[0]?.id;
         room.currentPhase = 'pick_subject';
         console.log(`🔵 [BACKEND] Game started for room ${gameId} with ${teams.length} teams`);
+        console.log(`🔵 [BACKEND] Broadcasting game-started to all ${room.sockets.size} sockets in room ${gameId}`);
+        // Broadcast to ALL players in the room (including host)
         io.to(gameId).emit('game-started', { teams: room.teams });
+        console.log(`🔵 [BACKEND] game-started event broadcasted`);
+      } else {
+        console.error(`🔵 [BACKEND] Room ${gameId} not found when trying to start game`);
       }
     });
     
