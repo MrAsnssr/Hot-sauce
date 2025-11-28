@@ -16,6 +16,7 @@ interface JoinedPlayer {
   id: string;
   name: string;
   teamId: string | null;
+  socketId?: string;
 }
 
 const TEAM_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'];
