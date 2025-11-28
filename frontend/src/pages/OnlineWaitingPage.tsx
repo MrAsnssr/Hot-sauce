@@ -38,6 +38,14 @@ const OnlineWaitingPage: React.FC = () => {
     { id: 'team-2', name: 'الفريق الثاني', color: TEAM_COLORS[1] },
   ]);
   const [joinedPlayers, setJoinedPlayers] = useState<JoinedPlayer[]>([]);
+  
+  // Safe array getters to prevent .map() errors
+  const safeSubjects = Array.isArray(subjects) ? subjects : [];
+  const safeQuestionTypes = Array.isArray(questionTypes) ? questionTypes : [];
+  const safeSelectedSubjects = Array.isArray(selectedSubjects) ? selectedSubjects : [];
+  const safeSelectedTypes = Array.isArray(selectedTypes) ? selectedTypes : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
+  const safePlayers = Array.isArray(joinedPlayers) ? joinedPlayers : [];
   const [configLoaded, setConfigLoaded] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const playersRef = useRef<JoinedPlayer[]>([]); // Ref to track players independently
@@ -284,11 +292,11 @@ const OnlineWaitingPage: React.FC = () => {
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                 <h3 className="text-xl font-bold text-white mb-4">المواضيع</h3>
                 <div className="flex flex-wrap gap-2">
-                  {subjects.map((subject) => (
+                  {safeSubjects.map((subject) => (
                     <div
                       key={subject.id}
                       className={`px-4 py-2 rounded-lg ${
-                        selectedSubjects.includes(subject.id)
+                        safeSelectedSubjects.includes(subject.id)
                           ? 'bg-blue-600 text-white'
                           : 'bg-white/20 text-white/60 opacity-50'
                       }`}
@@ -303,11 +311,11 @@ const OnlineWaitingPage: React.FC = () => {
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                 <h3 className="text-xl font-bold text-white mb-4">أنواع الأسئلة</h3>
                 <div className="flex flex-wrap gap-2">
-                  {questionTypes.map((type) => (
+                  {safeQuestionTypes.map((type) => (
                     <div
                       key={type.id}
                       className={`px-4 py-2 rounded-lg ${
-                        selectedTypes.includes(type.id)
+                        safeSelectedTypes.includes(type.id)
                           ? 'bg-purple-600 text-white'
                           : 'bg-white/20 text-white/60 opacity-50'
                       }`}
@@ -338,54 +346,54 @@ const OnlineWaitingPage: React.FC = () => {
 
             {/* Players & Teams */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4">
-                اللاعبون ({joinedPlayers.length})
-              </h3>
+            <h3 className="text-xl font-bold text-white mb-4">
+              اللاعبون ({safePlayers.length})
+            </h3>
 
-              {!configLoaded ? (
-                <div className="text-center py-8 text-white/50">
-                  جاري تحميل قائمة اللاعبين...
-                </div>
-              ) : joinedPlayers.length === 0 ? (
-                <div className="text-center py-8 text-white/50">
-                  في انتظار انضمام اللاعبين...
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {teams.map((team) => (
-                    <div
-                      key={team.id}
-                      className="rounded-lg p-4"
-                      style={{ backgroundColor: `${team.color}30` }}
-                    >
-                      <h4 className="text-white font-bold mb-2">{team.name}</h4>
-                      <div className="min-h-[40px]">
-                        {joinedPlayers
-                          .filter((p) => p.teamId === team.id)
-                          .map((player) => (
-                            <span
-                              key={player.id}
-                              className="inline-block bg-white/30 rounded px-2 py-1 text-white text-sm mr-2 mb-1"
-                            >
-                              {player.name}
-                            </span>
-                          ))}
-                      </div>
+            {!configLoaded ? (
+              <div className="text-center py-8 text-white/50">
+                جاري تحميل قائمة اللاعبين...
+              </div>
+            ) : safePlayers.length === 0 ? (
+              <div className="text-center py-8 text-white/50">
+                في انتظار انضمام اللاعبين...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {safeTeams.map((team) => (
+                  <div
+                    key={team.id}
+                    className="rounded-lg p-4"
+                    style={{ backgroundColor: `${team.color}30` }}
+                  >
+                    <h4 className="text-white font-bold mb-2">{team.name}</h4>
+                    <div className="min-h-[40px]">
+                      {safePlayers
+                        .filter((p) => p.teamId === team.id)
+                        .map((player) => (
+                          <span
+                            key={player.id}
+                            className="inline-block bg-white/30 rounded px-2 py-1 text-white text-sm mr-2 mb-1"
+                          >
+                            {player.name}
+                          </span>
+                        ))}
                     </div>
-                  ))}
+                  </div>
+                ))}
 
-                  {/* Unassigned */}
-                  {joinedPlayers.filter((p) => !p.teamId).length > 0 && (
-                    <div className="text-white/60 text-sm">
-                      بدون فريق:{' '}
-                      {joinedPlayers
-                        .filter((p) => !p.teamId)
-                        .map((p) => p.name)
-                        .join('، ')}
-                    </div>
-                  )}
-                </div>
-              )}
+                {/* Unassigned */}
+                {safePlayers.filter((p) => !p.teamId).length > 0 && (
+                  <div className="text-white/60 text-sm">
+                    بدون فريق:{' '}
+                    {safePlayers
+                      .filter((p) => !p.teamId)
+                      .map((p) => p.name)
+                      .join('، ')}
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           </div>
         )}
@@ -401,7 +409,7 @@ const OnlineWaitingPage: React.FC = () => {
           {/* Debug info */}
           <div className="mt-4 text-xs text-white/30">
             Socket: {socketConnected ? '✅ متصل' : '❌ غير متصل'} | 
-            Players: {joinedPlayers.length} | 
+            Players: {safePlayers.length} | 
             Config: {configLoaded ? '✅' : '⏳'}
           </div>
         </div>

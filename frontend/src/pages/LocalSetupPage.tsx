@@ -26,6 +26,10 @@ const LocalSetupPage: React.FC = () => {
   ]);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  
+  // Safe array getters to prevent .map() errors
+  const safePlayers = Array.isArray(players) ? players : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
 
   const addPlayer = () => {
     if (!newPlayerName.trim()) return;
@@ -71,12 +75,12 @@ const LocalSetupPage: React.FC = () => {
   };
 
   const startGame = () => {
-    const unassignedPlayers = players.filter((p) => !p.teamId);
-    if (unassignedPlayers.length > 0) {
+    const unassignedCheck = safePlayers.filter((p) => !p.teamId);
+    if (unassignedCheck.length > 0) {
       alert('يجب توزيع جميع اللاعبين على الفرق');
       return;
     }
-    if (players.length < 2) {
+    if (safePlayers.length < 2) {
       alert('يجب إضافة لاعبين على الأقل');
       return;
     }
@@ -84,10 +88,10 @@ const LocalSetupPage: React.FC = () => {
     // Store game config
     const gameConfig = {
       mode: 'local',
-      players,
-      teams: teams.map((t) => ({
+      players: safePlayers,
+      teams: safeTeams.map((t) => ({
         ...t,
-        players: players.filter((p) => p.teamId === t.id),
+        players: safePlayers.filter((p) => p.teamId === t.id),
       })),
     };
     sessionStorage.setItem('gameConfig', JSON.stringify(gameConfig));
@@ -95,9 +99,9 @@ const LocalSetupPage: React.FC = () => {
   };
 
   const getTeamPlayers = (teamId: string) =>
-    players.filter((p) => p.teamId === teamId);
+    safePlayers.filter((p) => p.teamId === teamId);
 
-  const unassignedPlayers = players.filter((p) => !p.teamId);
+  const unassignedPlayers = safePlayers.filter((p) => !p.teamId);
 
   return (
     <WoodyBackground>
@@ -175,7 +179,7 @@ const LocalSetupPage: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {teams.map((team) => (
+              {safeTeams.map((team) => (
                 <div
                   key={team.id}
                   className="rounded-xl p-4"
@@ -264,7 +268,7 @@ const LocalSetupPage: React.FC = () => {
             variant="success"
             size="lg"
             className="px-12"
-            disabled={players.length < 2 || unassignedPlayers.length > 0}
+            disabled={safePlayers.length < 2 || unassignedPlayers.length > 0}
           >
             ابدأ اللعبة 🎮
           </Button>

@@ -42,6 +42,14 @@ const OnlineCreatePage: React.FC = () => {
   
   // Joined players
   const [joinedPlayers, setJoinedPlayers] = useState<JoinedPlayer[]>([]);
+  
+  // Safe array getters to prevent .map() errors
+  const safeSubjects = Array.isArray(subjects) ? subjects : [];
+  const safeQuestionTypes = Array.isArray(questionTypes) ? questionTypes : [];
+  const safeSelectedSubjects = Array.isArray(selectedSubjects) ? selectedSubjects : [];
+  const safeSelectedTypes = Array.isArray(selectedTypes) ? selectedTypes : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
+  const safePlayers = Array.isArray(joinedPlayers) ? joinedPlayers : [];
 
   useEffect(() => {
     // Generate room code
@@ -234,7 +242,7 @@ const OnlineCreatePage: React.FC = () => {
   };
 
   const startGame = () => {
-    if (joinedPlayers.length < 2) {
+    if (safePlayers.length < 2) {
       // For testing, add mock players
       const mockPlayers: JoinedPlayer[] = [
         { id: 'p1', name: 'لاعب 1', teamId: 'team-1' },
@@ -243,8 +251,8 @@ const OnlineCreatePage: React.FC = () => {
       setJoinedPlayers(mockPlayers);
     }
 
-    const unassigned = joinedPlayers.filter((p) => !p.teamId);
-    if (unassigned.length > 0 && joinedPlayers.length >= 2) {
+    const unassigned = safePlayers.filter((p) => !p.teamId);
+    if (unassigned.length > 0 && safePlayers.length >= 2) {
       alert('يجب توزيع جميع اللاعبين على الفرق');
       return;
     }
@@ -253,9 +261,9 @@ const OnlineCreatePage: React.FC = () => {
     const gameConfig = {
       mode: 'online',
       roomCode,
-      teams: teams.map((t) => ({
+      teams: safeTeams.map((t) => ({
         ...t,
-        players: joinedPlayers.filter((p) => p.teamId === t.id),
+        players: safePlayers.filter((p) => p.teamId === t.id),
         score: 0,
       })),
       settings: {
@@ -326,12 +334,12 @@ const OnlineCreatePage: React.FC = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
               <h3 className="text-xl font-bold text-white mb-4">المواضيع</h3>
               <div className="flex flex-wrap gap-2">
-                {subjects.map((subject) => (
+                {safeSubjects.map((subject) => (
                   <button
                     key={subject.id}
                     onClick={() => toggleSubject(subject.id)}
                     className={`px-4 py-2 rounded-lg transition-all ${
-                      selectedSubjects.includes(subject.id)
+                      safeSelectedSubjects.includes(subject.id)
                         ? 'bg-blue-600 text-white'
                         : 'bg-white/20 text-white/60'
                     }`}
@@ -346,12 +354,12 @@ const OnlineCreatePage: React.FC = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
               <h3 className="text-xl font-bold text-white mb-4">أنواع الأسئلة</h3>
               <div className="flex flex-wrap gap-2">
-                {questionTypes.map((type) => (
+                {safeQuestionTypes.map((type) => (
                   <button
                     key={type.id}
                     onClick={() => toggleType(type.id)}
                     className={`px-4 py-2 rounded-lg transition-all ${
-                      selectedTypes.includes(type.id)
+                      safeSelectedTypes.includes(type.id)
                         ? 'bg-purple-600 text-white'
                         : 'bg-white/20 text-white/60'
                     }`}
@@ -384,10 +392,10 @@ const OnlineCreatePage: React.FC = () => {
           {/* Players & Teams */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
             <h3 className="text-xl font-bold text-white mb-4">
-              اللاعبون ({joinedPlayers.length})
+              اللاعبون ({safePlayers.length})
             </h3>
 
-            {joinedPlayers.length === 0 ? (
+            {safePlayers.length === 0 ? (
               <div className="text-center py-8 text-white/50">
                 في انتظار انضمام اللاعبين...
                 <div className="mt-4 text-sm">
@@ -396,7 +404,7 @@ const OnlineCreatePage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {teams.map((team) => (
+                {safeTeams.map((team) => (
                   <div
                     key={team.id}
                     className="rounded-lg p-4"
@@ -404,7 +412,7 @@ const OnlineCreatePage: React.FC = () => {
                   >
                     <h4 className="text-white font-bold mb-2">{team.name}</h4>
                     <div className="min-h-[40px]">
-                      {joinedPlayers
+                      {safePlayers
                         .filter((p) => p.teamId === team.id)
                         .map((player) => (
                           <span
@@ -419,10 +427,10 @@ const OnlineCreatePage: React.FC = () => {
                 ))}
 
                 {/* Unassigned */}
-                {joinedPlayers.filter((p) => !p.teamId).length > 0 && (
+                {safePlayers.filter((p) => !p.teamId).length > 0 && (
                   <div className="text-white/60 text-sm">
                     بدون فريق:{' '}
-                    {joinedPlayers
+                    {safePlayers
                       .filter((p) => !p.teamId)
                       .map((p) => p.name)
                       .join('، ')}
@@ -444,9 +452,9 @@ const OnlineCreatePage: React.FC = () => {
             ابدأ اللعبة 🚀
           </Button>
           <p className="text-white/50 text-sm mt-2">
-            {joinedPlayers.length < 2
+            {safePlayers.length < 2
               ? 'سيتم إضافة لاعبين تجريبيين'
-              : `${joinedPlayers.length} لاعبين جاهزين`}
+              : `${safePlayers.length} لاعبين جاهزين`}
           </p>
         </div>
       </div>

@@ -53,6 +53,9 @@ const OnlineGamePage: React.FC = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [timeUp, setTimeUp] = useState(false);
   const [currentSauce, setCurrentSauce] = useState<Power | null>(null);
+  
+  // Safe array getter to prevent .map() errors
+  const safeTeams = Array.isArray(teams) ? teams : [];
 
   useEffect(() => {
     const config = sessionStorage.getItem('gameConfig');
@@ -70,7 +73,7 @@ const OnlineGamePage: React.FC = () => {
     }
   }, [navigate, isHost]);
 
-  const currentTeam = teams[currentTeamIndex];
+  const currentTeam = safeTeams.length > currentTeamIndex ? safeTeams[currentTeamIndex] : null;
 
   const loadNextQuestion = async () => {
     try {
@@ -198,7 +201,7 @@ const OnlineGamePage: React.FC = () => {
 
         {/* Score Board */}
         <div className="flex gap-4 justify-center mb-8">
-          {teams.map((team, idx) => (
+          {safeTeams.map((team, idx) => (
             <div
               key={team.id}
               className={`rounded-xl p-4 min-w-[150px] text-center transition-all ${

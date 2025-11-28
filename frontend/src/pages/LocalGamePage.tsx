@@ -49,6 +49,11 @@ const LocalGamePage: React.FC = () => {
   
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([]);
+  
+  // Safe array getters to prevent .map() errors
+  const safeSubjects = Array.isArray(subjects) ? subjects : [];
+  const safeQuestionTypes = Array.isArray(questionTypes) ? questionTypes : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -298,7 +303,7 @@ const LocalGamePage: React.FC = () => {
 
         {/* Score Board */}
         <div className="flex gap-4 justify-center mb-8">
-          {teams.map((team, idx) => (
+          {safeTeams.map((team, idx) => (
             <div
               key={team.id}
               className={`rounded-xl p-4 min-w-[150px] text-center transition-all ${
@@ -359,7 +364,7 @@ const LocalGamePage: React.FC = () => {
                 اختر الموضوع
               </h2>
               <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
-                {subjects.map((subject) => (
+                {safeSubjects.map((subject) => (
                   <button
                     key={subject.id}
                     onClick={() => handleSubjectSelect(subject)}
@@ -381,7 +386,7 @@ const LocalGamePage: React.FC = () => {
                 الموضوع: {selectedSubject?.nameAr}
               </p>
               <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
-                {questionTypes.map((type) => (
+                {safeQuestionTypes.map((type) => (
                   <button
                     key={type.id}
                     onClick={() => handleTypeSelect(type)}
