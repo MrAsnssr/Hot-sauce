@@ -300,26 +300,37 @@ const OnlineGamePage: React.FC = () => {
     });
 
     newSocket.on('round-ended', (data: { subjectPickerTeamId?: string; teams?: Team[]; firstPickerIndex?: number; firstPickIsSubject?: boolean }) => {
+      console.log('🔵 [FRONTEND] Round ended event received:', data);
+
       // Update teams if provided
       if (data.teams) {
         setTeams(data.teams);
       }
-      
+
       // Update picker state from backend if provided, otherwise rotate locally
-      if (data.firstPickerIndex !== undefined && data.firstPickIsSubject !== undefined) {
+      if (data.firstPickerIndex !== undefined) {
         setFirstPickerIndex(data.firstPickerIndex);
-        setFirstPickIsSubject(data.firstPickIsSubject);
+        // Backend always sends firstPickIsSubject = true now
+        if (data.firstPickIsSubject !== undefined) {
+          setFirstPickIsSubject(data.firstPickIsSubject);
+        } else {
+          setFirstPickIsSubject(true); // Ensure it's true
+        }
+        console.log('🔵 [FRONTEND] Updated picker state:', {
+          firstPickerIndex: data.firstPickerIndex,
+          firstPickIsSubject: data.firstPickIsSubject || true
+        });
       } else {
-        // Rotate: alternate ONLY the team
+        // Fallback: rotate locally (shouldn't happen)
+        console.warn('🔵 [FRONTEND] No firstPickerIndex from backend, rotating locally');
         setFirstPickerIndex(prev => {
           const next = (prev + 1) % (data.teams?.length || teams.length || 2);
           if (next === 0) setRound(r => r + 1);
           return next;
         });
-        // Do NOT alternate subject/type
-        // setFirstPickIsSubject(prev => !prev); 
+        setFirstPickIsSubject(true);
       }
-      
+
       setSelectedSubject(null);
       setSelectedType(null);
       setCurrentQuestion(null);
@@ -327,6 +338,8 @@ const OnlineGamePage: React.FC = () => {
       setTeamAnswers({});
       // Always start with pick_subject
       setPhase('pick_subject');
+
+      console.log('🔵 [FRONTEND] Round ended, phase set to pick_subject');
     });
 
     newSocket.on('error', (error: any) => {
@@ -384,9 +397,20 @@ const OnlineGamePage: React.FC = () => {
   const secondPickerIndex = (firstPickerIndex + 1) % teams.length;
   const subjectPickerIndex = firstPickerIndex; // Always the first picker picks subject
   const typePickerIndex = secondPickerIndex; // Second team picks type
-  
+
   const subjectPickerTeam = teams[subjectPickerIndex];
   const typePickerTeam = teams[typePickerIndex];
+
+  // Debug logging
+  console.log('🔵 [FRONTEND] Game logic:', {
+    firstPickerIndex,
+    firstPickIsSubject,
+    phase,
+    subjectPickerIndex,
+    typePickerIndex,
+    subjectPickerTeam: subjectPickerTeam?.name,
+    typePickerTeam: typePickerTeam?.name
+  });
 
   const handleSelectSubject = (subjectId: string) => {
     // Host can pick, but only when it's the subject picker team's turn

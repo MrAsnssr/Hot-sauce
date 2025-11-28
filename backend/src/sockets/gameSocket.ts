@@ -412,8 +412,8 @@ export const setupGameSocket = (io: Server) => {
         room.currentPhase = 'pick_subject'; // Always start with picking subject
         
         console.log(`🔵 [BACKEND] Round ended for room ${gameId}`);
-        console.log(`🔵 [BACKEND] Next: Team ${room.firstPickerIndex} picks ${room.firstPickIsSubject ? 'subject' : 'type'} first`);
-        io.to(gameId).emit('round-ended', { 
+        console.log(`🔵 [BACKEND] Next: Team ${room.firstPickerIndex} picks subject first, Team ${secondPickerIndex} picks type`);
+        io.to(gameId).emit('round-ended', {
           subjectPickerTeamId: room.subjectPickerTeamId,
           teams: room.teams,
           firstPickerIndex: room.firstPickerIndex,
