@@ -413,33 +413,61 @@ const OnlineGamePage: React.FC = () => {
   });
 
   const handleSelectSubject = (subjectId: string) => {
+    console.log('🔵 [FRONTEND] handleSelectSubject called:', { subjectId, phase, isHost, subjectPickerTeam: subjectPickerTeam?.name });
+
     // Host can pick, but only when it's the subject picker team's turn
     // Check that we're in the right phase AND it's the subject picker team's turn
-    if (!isHost || phase !== 'pick_subject') return;
+    if (!isHost) {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: not host');
+      return;
+    }
+    if (phase !== 'pick_subject') {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: wrong phase', phase);
+      return;
+    }
     // Verify it's actually the subject picker team's turn (host acts on behalf of that team)
-    if (!subjectPickerTeam) return;
-    
+    if (!subjectPickerTeam) {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: no subjectPickerTeam');
+      return;
+    }
+
+    console.log('🔵 [FRONTEND] handleSelectSubject proceeding...');
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
       // Subject is always picked first now (firstPickIsSubject is always true)
+      console.log('🔵 [FRONTEND] Emitting game-phase-changed to pick_type');
       socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
       setPhase('pick_type');
     }
   };
 
   const handleSelectType = (typeId: string) => {
+    console.log('🔵 [FRONTEND] handleSelectType called:', { typeId, phase, isHost, typePickerTeam: typePickerTeam?.name });
+
     // Host can pick, but only when it's the type picker team's turn
     // Check that we're in the right phase AND it's the type picker team's turn
-    if (!isHost || phase !== 'pick_type') return;
+    if (!isHost) {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: not host');
+      return;
+    }
+    if (phase !== 'pick_type') {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: wrong phase', phase);
+      return;
+    }
     // Verify it's actually the type picker team's turn (host acts on behalf of that team)
-    if (!typePickerTeam) return;
-    
+    if (!typePickerTeam) {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: no typePickerTeam');
+      return;
+    }
+
+    console.log('🔵 [FRONTEND] handleSelectType proceeding...');
     setSelectedType(typeId);
     if (socket) {
       socket.emit('select-type', { gameId: roomCode, typeId });
       // After type is picked, we have both subject and type - load question
       if (selectedSubject) {
+        console.log('🔵 [FRONTEND] Loading question with:', { subjectId: selectedSubject, typeId });
         socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
       } else {
         // This shouldn't happen, but just in case

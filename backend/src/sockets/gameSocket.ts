@@ -195,6 +195,11 @@ export const setupGameSocket = (io: Server) => {
         room.selectedSubjectId = subjectId;
         console.log(`🔵 [BACKEND] Subject selected: ${subjectId} for room ${gameId}`);
         io.to(gameId).emit('subject-selected', { subjectId });
+
+        // Automatically advance to type picking phase
+        console.log(`🔵 [BACKEND] Auto-advancing to pick_type phase for room ${gameId}`);
+        room.currentPhase = 'pick_type';
+        io.to(gameId).emit('game-phase-changed', { phase: 'pick_type' });
       }
     });
 
@@ -206,6 +211,10 @@ export const setupGameSocket = (io: Server) => {
         room.selectedTypeId = typeId;
         console.log(`🔵 [BACKEND] Type selected: ${typeId} for room ${gameId}`);
         io.to(gameId).emit('type-selected', { typeId });
+
+        // Now load the question automatically
+        console.log(`🔵 [BACKEND] Loading question for room ${gameId} with subject: ${room.selectedSubjectId}, type: ${typeId}`);
+        // We'll let the load-question event handle the actual loading
       }
     });
 
