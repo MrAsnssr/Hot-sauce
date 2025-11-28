@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import LocalSetupPage from './pages/LocalSetupPage';
 import LocalGamePage from './pages/LocalGamePage';
@@ -10,6 +11,7 @@ import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         {/* Main */}
@@ -21,15 +23,17 @@ function App() {
         
         {/* Online Game */}
         <Route path="/online/create" element={<OnlineCreatePage />} />
+        <Route path="/online/lobby/:roomCode" element={<OnlineCreatePage />} />
         <Route path="/online/join" element={<OnlineJoinPage />} />
         <Route path="/online/join/:roomCode" element={<OnlineJoinPage />} />
         <Route path="/online/waiting" element={<OnlineWaitingPage />} />
-        <Route path="/online/game" element={<OnlineGamePage />} />
+        <Route path="/online/game/:roomCode" element={<OnlineGamePage />} />
         
         {/* Admin */}
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

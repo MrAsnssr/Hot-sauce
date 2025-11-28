@@ -1,229 +1,726 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
+import api from '../utils/api';
+import { io, Socket } from 'socket.io-client';
 
-interface Question {
-  _id: string;
-  question: string;
-  questionAr: string;
-  options: string[];
-  optionsAr: string[];
-  correctAnswer: number;
-  subject: string;
-  type: string;
-}
-
+// ============ TYPES ============
 interface Player {
   id: string;
   name: string;
+  color: string;
   score: number;
-  isHost: boolean;
 }
 
+interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+  points: number;
+  timeLimit: number;
+}
+
+interface Subject {
+  id: string;
+  nameAr: string;
+}
+
+type GamePhase = 'pick_subject' | 'pick_type' | 'question' | 'results';
+
+// ============ COMPONENT ============
 const OnlineGamePage: React.FC = () => {
   const navigate = useNavigate();
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const { roomCode: urlRoomCode } = useParams<{ roomCode: string }>();
+
+  // Game data
+  const [roomCode, setRoomCode] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [playerId, setPlayerId] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [round, setRound] = useState(1);
+  const [pickerIndex, setPickerIndex] = useState(0); // Which player picks (rotates for subject/type)
+  const [pickPhase, setPickPhase] = useState<'subject' | 'type'>('subject'); // What they're picking
 
-  // Mock questions for demonstration
-  const mockQuestions: Question[] = [
-    {
-      _id: '1',
-      question: 'What is the capital of France?',
-      questionAr: 'ما هي عاصمة فرنسا؟',
-      options: ['London', 'Paris', 'Berlin', 'Madrid'],
-      optionsAr: ['لندن', 'باريس', 'برلين', 'مدريد'],
-      correctAnswer: 1,
-      subject: 'Geography',
-      type: 'Multiple Choice'
-    },
-    {
-      _id: '2',
-      question: 'Which planet is known as the Red Planet?',
-      questionAr: 'أي كوكب يُعرف باسم الكوكب الأحمر؟',
-      options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-      optionsAr: ['الزهرة', 'المريخ', 'المشتري', 'زحل'],
-      correctAnswer: 1,
-      subject: 'Science',
-      type: 'Multiple Choice'
-    }
-  ];
+  // Current round state
+  const [phase, setPhase] = useState<GamePhase>('pick_subject');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  
+  // Answer state
+  const [playerAnswers, setPlayerAnswers] = useState<Record<string, { optionId: string; timestamp: number }>>({});
+  const [timer, setTimer] = useState(30);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
-  // Mock players
+  // ============ INIT ============
   useEffect(() => {
-    const mockPlayers: Player[] = [
-      { id: '1', name: localStorage.getItem('hostName') || 'المضيف', score: 25, isHost: true },
-      { id: '2', name: 'لاعب 1', score: 15, isHost: false },
-      { id: '3', name: 'لاعب 2', score: 20, isHost: false },
-    ];
-    setPlayers(mockPlayers);
-  }, []);
-
-  useEffect(() => {
-    if (!gameStarted) {
-      setCurrentQuestion(mockQuestions[0]);
-      setGameStarted(true);
-    }
-  }, [gameStarted]);
-
-  // Timer effect
-  useEffect(() => {
-    if (timeLeft > 0 && !showResult) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !showResult) {
-      handleTimeUp();
-    }
-  }, [timeLeft, showResult]);
-
-  const handleTimeUp = () => {
-    setShowResult(true);
-    setTimeout(() => {
-      nextQuestion();
-    }, 3000);
-  };
-
-  const handleAnswerSelect = (answerIndex: number) => {
-    if (showResult) return;
-    setSelectedAnswer(answerIndex);
-  };
-
-  const handleSubmitAnswer = () => {
-    if (selectedAnswer === null) return;
-
-    setShowResult(true);
-
-    // Update score if correct
-    if (selectedAnswer === currentQuestion?.correctAnswer) {
-      setPlayers(prev => prev.map(player =>
-        player.id === '1' ? { ...player, score: player.score + 10 } : player
-      ));
-    }
-
-    setTimeout(() => {
-      nextQuestion();
-    }, 3000);
-  };
-
-  const nextQuestion = () => {
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setTimeLeft(30);
-
-    const currentIndex = mockQuestions.findIndex(q => q._id === currentQuestion?._id);
-    if (currentIndex < mockQuestions.length - 1) {
-      setCurrentQuestion(mockQuestions[currentIndex + 1]);
-    } else {
-      // Game over
-      alert('اللعبة انتهت! شكراً للمشاركة.');
+    // 1. Resolve Room Code
+    const code = urlRoomCode?.toUpperCase() || sessionStorage.getItem('roomCode') || '';
+    
+    if (!code) {
       navigate('/');
+      return;
+    }
+    setRoomCode(code);
+
+    // 2. Resolve Player Info
+    const host = sessionStorage.getItem('isHost') === 'true';
+    setIsHost(host);
+    const pId = sessionStorage.getItem('playerName') || `player-${Date.now()}`;
+    setPlayerId(pId);
+
+    // 3. Load Initial Game Data (if available locally, will be overwritten by socket)
+    const gameData = sessionStorage.getItem('onlineGame');
+    if (gameData) {
+      try {
+        const parsed = JSON.parse(gameData);
+        // Only use session data if it matches current room
+        if (parsed.roomCode === code) {
+          if (parsed.players) {
+             setPlayers(parsed.players.map((p: any) => ({ ...p, score: 0 })));
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing local game data', e);
+      }
+    }
+
+    loadSubjects();
+    const newSocket = setupSocket(code, pId, host);
+
+    return () => {
+      if (newSocket && newSocket.connected) {
+        newSocket.disconnect();
+      }
+    };
+  }, [navigate, urlRoomCode]);
+
+  const loadSubjects = async () => {
+    try {
+      const res = await api.get('/subjects');
+      const data = Array.isArray(res.data) ? res.data : (res.data?.subjects ? res.data.subjects : []);
+      const mapped = data.map((s: any) => ({
+        id: s._id || s.id,
+        nameAr: s.nameAr || s.name || 'موضوع',
+      }));
+      setSubjects(mapped.length > 0 ? mapped : [{ id: '1', nameAr: 'ثقافة عامة' }]);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      // Use fallback subject
+      setSubjects([{ id: '1', nameAr: 'ثقافة عامة' }]);
     }
   };
 
-  if (!currentQuestion) {
-    return <div className="min-h-screen flex items-center justify-center">جاري تحميل...</div>;
+  const setupSocket = (code: string, pId: string, host: boolean) => {
+    const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
+                     (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'], // Allow fallback to polling
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
+    });
+
+    newSocket.on('connect', () => {
+      console.log('🔌 Connected to game socket');
+      newSocket.emit('join-game', {
+        gameId: code,
+        playerName: pId,
+        isHost: host,
+      });
+      
+      // If host, we might want to ensure the game is started or send config
+      // But typically this is handled in the lobby. 
+      // If refresh happens, the backend should hopefully have state.
+      // If backend has no state (server restart), we might need to re-send config from session.
+      if (host) {
+        const gameData = sessionStorage.getItem('onlineGame');
+        if (gameData) {
+           try {
+             const parsed = JSON.parse(gameData);
+             if (parsed.players && parsed.roomCode === code) {
+               // Re-sync players if backend lost them
+               newSocket.emit('update-game-config', { players: parsed.players });
+             }
+           } catch(e) {
+             console.error('Error parsing game data:', e);
+           }
+        }
+      }
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('🔌 Socket connection error:', error);
+      alert('خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
+    });
+
+    newSocket.on('error', (error: any) => {
+      console.error('🔌 Socket error:', error);
+      if (error.message) {
+        alert(`خطأ: ${error.message}`);
+      }
+    });
+
+    newSocket.on('game-started', (data: { players: Player[]; pickerIndex?: number; pickPhase?: 'subject' | 'type' }) => {
+      // This might happen if late joiner or re-sync
+      if (data.players) {
+        setPlayers(data.players);
+      }
+      // Initialize picker state
+      if (data.pickerIndex !== undefined) {
+        setPickerIndex(data.pickerIndex);
+      }
+      if (data.pickPhase !== undefined) {
+        setPickPhase(data.pickPhase);
+        setPhase(data.pickPhase === 'subject' ? 'pick_subject' : 'pick_type');
+      }
+    });
+
+    // Handle receiving config update (e.g. from lobby or re-sync)
+    newSocket.on('game-config-updated', (config: any) => {
+      if (config.players) {
+        setPlayers(config.players);
+      }
+    });
+
+    newSocket.on('game-phase-changed', (data: { phase: GamePhase }) => {
+      setPhase(data.phase);
+    });
+
+    newSocket.on('question-loaded', (data: { question: any }) => {
+      const q = data.question;
+      if (!q) {
+        console.error('No question data received');
+        return;
+      }
+      
+      let options: QuestionOption[] = [];
+      if (q.options?.length > 0) {
+        options = q.options.map((o: any, i: number) => ({
+          id: o.id || o._id || `${i}`,
+          text: o.text,
+          isCorrect: o.isCorrect === true,
+        }));
+      } else if (q.correctAnswer) {
+        options = shuffleArray([
+          { id: 'correct', text: q.correctAnswer, isCorrect: true },
+          { id: 'w1', text: 'خيار خاطئ ١', isCorrect: false },
+          { id: 'w2', text: 'خيار خاطئ ٢', isCorrect: false },
+          { id: 'w3', text: 'خيار خاطئ ٣', isCorrect: false },
+        ]);
+      } else if (q.orderItems) {
+        // For order questions, create options from order items
+        const shuffled = shuffleArray([...q.orderItems]);
+        options = shuffled.map((item: any, i: number) => ({
+          id: item.id || `${i}`,
+          text: item.text,
+          isCorrect: false,
+        }));
+      } else if (q.whoAndWhoData) {
+        // For who-and-who questions, create options from achievements
+        const shuffled = shuffleArray([...q.whoAndWhoData.achievements]);
+        options = shuffled.map((ach: any, i: number) => ({
+          id: ach.id || `${i}`,
+          text: ach.text,
+          isCorrect: false,
+        }));
+      }
+
+      if (options.length === 0) {
+        console.error('No options available for question');
+        return;
+      }
+
+      setCurrentQuestion({
+        id: q._id || q.id || Date.now().toString(),
+        text: q.text,
+        options,
+        points: q.points || 10,
+        timeLimit: q.timeLimit || 30,
+      });
+      setTimer(q.timeLimit || 30);
+      setPlayerAnswers({});
+      setPhase('question');
+    });
+
+    newSocket.on('player-answer-locked', (data: { playerId: string; optionId: string; timestamp: number }) => {
+      setPlayerAnswers(prev => ({
+        ...prev,
+        [data.playerId]: { optionId: data.optionId, timestamp: data.timestamp },
+      }));
+    });
+
+    newSocket.on('results-revealed', (data: { 
+      playerAnswers: Record<string, { optionId: string; timestamp: number }>;
+      scores: Record<string, number>;
+    }) => {
+      setPlayerAnswers(data.playerAnswers);
+      setPlayers(prev => prev.map(p => ({
+        ...p,
+        score: data.scores[p.id] || p.score,
+      })));
+      setPhase('results');
+    });
+
+    newSocket.on('round-ended', (data: { players?: Player[]; pickerIndex?: number; pickPhase?: 'subject' | 'type' }) => {
+      console.log('🔵 [FRONTEND] Round ended event received:', data);
+
+      // Update players if provided
+      if (data.players) {
+        setPlayers(data.players);
+      }
+
+      // Update picker state from backend if provided
+      if (data.pickerIndex !== undefined) {
+        setPickerIndex(data.pickerIndex);
+      }
+      if (data.pickPhase !== undefined) {
+        setPickPhase(data.pickPhase);
+        setPhase(data.pickPhase === 'subject' ? 'pick_subject' : 'pick_type');
+      } else {
+        // Default to subject picking
+        setPickPhase('subject');
+        setPhase('pick_subject');
+      }
+
+      setSelectedSubject(null);
+      setSelectedType(null);
+      setCurrentQuestion(null);
+      setPlayerAnswers({});
+      
+      console.log('🔵 [FRONTEND] Round ended, phase set to pick_subject');
+    });
+
+    newSocket.on('error', (error: any) => {
+      console.error('Socket error event:', error);
+      const errorMessage = error.message || error.details || 'حدث خطأ في الاتصال';
+      alert(`خطأ: ${errorMessage}`);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.warn('Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected, reconnect manually
+        alert('انقطع الاتصال بالخادم. سيتم إعادة الاتصال...');
+      }
+    });
+
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+    });
+    
+    setSocket(newSocket);
+    return newSocket;
+  };
+
+  // ============ TIMER ============
+  useEffect(() => {
+    if (phase !== 'question' || timer <= 0) return;
+    
+    let intervalId: ReturnType<typeof setInterval>;
+    let mounted = true;
+    
+    intervalId = setInterval(() => {
+      if (!mounted) return;
+      
+      setTimer(t => {
+        if (t <= 1) {
+          if (mounted && socket && isHost) {
+            socket.emit('reveal-results', { gameId: roomCode });
+          }
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [phase, socket, isHost, roomCode]);
+
+  // ============ GAME LOGIC ============
+  // Determine which player picks what - rotates through players
+  const currentPicker = players[pickerIndex];
+
+  // Debug logging
+  console.log('🔵 [FRONTEND] Game logic:', {
+    pickerIndex,
+    pickPhase,
+    phase,
+    currentPicker: currentPicker?.name
+  });
+
+  const handleSelectSubject = (subjectId: string) => {
+    console.log('🔵 [FRONTEND] handleSelectSubject called:', { subjectId, phase, isHost, currentPicker: currentPicker?.name });
+
+    // Host can pick, but only when it's the current picker's turn
+    if (!isHost) {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: not host');
+      return;
+    }
+    if (phase !== 'pick_subject') {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: wrong phase', phase);
+      return;
+    }
+    if (!currentPicker) {
+      console.log('🔵 [FRONTEND] handleSelectSubject blocked: no currentPicker');
+      return;
+    }
+
+    console.log('🔵 [FRONTEND] handleSelectSubject proceeding...');
+    setSelectedSubject(subjectId);
+    if (socket) {
+      socket.emit('select-subject', { gameId: roomCode, subjectId });
+      // Move to next player to pick type
+      const nextPickerIndex = (pickerIndex + 1) % players.length;
+      socket.emit('update-picker', { gameId: roomCode, pickerIndex: nextPickerIndex, pickPhase: 'type' });
+      setPickerIndex(nextPickerIndex);
+      setPickPhase('type');
+      socket.emit('game-phase-changed', { gameId: roomCode, phase: 'pick_type' });
+      setPhase('pick_type');
+    }
+  };
+
+  const handleSelectType = (typeId: string) => {
+    console.log('🔵 [FRONTEND] handleSelectType called:', { typeId, phase, isHost, currentPicker: currentPicker?.name });
+
+    // Host can pick, but only when it's the current picker's turn
+    if (!isHost) {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: not host');
+      return;
+    }
+    if (phase !== 'pick_type') {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: wrong phase', phase);
+      return;
+    }
+    if (!currentPicker) {
+      console.log('🔵 [FRONTEND] handleSelectType blocked: no currentPicker');
+      return;
+    }
+
+    console.log('🔵 [FRONTEND] handleSelectType proceeding...');
+    setSelectedType(typeId);
+    if (socket) {
+      socket.emit('select-type', { gameId: roomCode, typeId });
+      // After type is picked, we have both subject and type - load question
+      if (selectedSubject) {
+        console.log('🔵 [FRONTEND] Loading question with:', { subjectId: selectedSubject, typeId });
+        socket.emit('load-question', { gameId: roomCode, subjectId: selectedSubject, typeId });
+      } else {
+        // This shouldn't happen, but just in case
+        console.warn('Subject not selected yet, but type was picked');
+      }
+    }
+  };
+
+  const handleAnswer = (optionId: string) => {
+    if (phase !== 'question' || !socket) return;
+    
+    // Prevent duplicate answers
+    if (playerAnswers[playerId]) return;
+    
+    socket.emit('player-answer', {
+      gameId: roomCode,
+      playerId: playerId,
+      optionId,
+    });
+    setPlayerAnswers(prev => ({ 
+      ...prev, 
+      [playerId]: { optionId, timestamp: Date.now() } 
+    }));
+  };
+
+  const handleRevealResults = () => {
+    if (!isHost || phase !== 'question') return;
+    if (socket) {
+      socket.emit('reveal-results', { gameId: roomCode });
+    }
+  };
+
+  const handleNextRound = () => {
+    if (!isHost || phase !== 'results') return;
+    if (socket) {
+      socket.emit('round-ended', { gameId: roomCode });
+    }
+  };
+
+  const myAnswer = playerAnswers[playerId]?.optionId;
+
+  // ============ HELPERS ============
+  const shuffleArray = <T,>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // ============ RENDER ============
+  if (players.length === 0) {
+    return (
+      <WoodyBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-white text-2xl">جاري التحميل...</p>
+        </div>
+      </WoodyBackground>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header with timer and scores */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-white">
-            <div className="text-3xl font-bold">
-              {timeLeft}
+    <WoodyBackground>
+      <div className="min-h-screen p-4">
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={() => {
+                if (confirm('إنهاء اللعبة؟')) {
+                  sessionStorage.removeItem('onlineGame');
+                  sessionStorage.removeItem('roomCode');
+                  sessionStorage.removeItem('isHost');
+                  navigate('/');
+                }
+              }}
+              className="text-white/60 hover:text-white"
+            >
+              ✕ خروج
+            </button>
+            <div className="text-white">
+              <span className="text-yellow-400 font-bold">{roomCode}</span>
+              <span className="text-white/60 mr-2"> | الجولة {round}</span>
             </div>
-            <div className="text-sm">ثانية متبقية</div>
+            <div className="w-16" />
           </div>
 
-          <div className="text-center">
-            <h2 className="text-white text-2xl font-bold">اللعبة جارية</h2>
-          </div>
-
-          <div className="text-right">
-            <div className="text-white text-sm">اللاعبون</div>
-            <div className="space-y-1">
-              {players.slice(0, 3).map(player => (
-                <div key={player.id} className="text-white text-sm">
-                  {player.name}: {player.score}
+          {/* Scoreboard */}
+          <div className="flex flex-wrap justify-center gap-4 mb-6">
+            {players.map((player, i) => {
+              const isPicking = i === pickerIndex && (phase === 'pick_subject' || phase === 'pick_type');
+              return (
+                <div
+                  key={player.id}
+                  className={`rounded-xl px-6 py-4 text-center min-w-[140px] ${
+                    isPicking ? 'ring-4 ring-yellow-400 scale-105' : ''
+                  }`}
+                  style={{ backgroundColor: player.color }}
+                >
+                  <div className="text-white font-bold">{player.name}</div>
+                  <div className="text-4xl font-bold text-white">{player.score}</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Question */}
-        <div className="bg-white rounded-lg shadow-2xl p-8 mb-6">
-          <div className="text-center mb-6">
-            <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-              {currentQuestion.subject}
-            </span>
+              );
+            })}
           </div>
 
-          <h3 className="text-2xl font-bold text-center text-gray-800 mb-8">
-            {currentQuestion.questionAr}
-          </h3>
+          {/* Main Content */}
+          <div className="bg-white/10 backdrop-blur rounded-xl p-6">
+            
+            {/* PICK SUBJECT */}
+            {phase === 'pick_subject' && (
+              <>
+                <div className="text-center mb-6">
+                  <span className="text-white text-xl">
+                    <strong style={{ color: currentPicker?.color }}>{currentPicker?.name}</strong> يختار الموضوع
+                  </span>
+                </div>
+                
+                {isHost && currentPicker && phase === 'pick_subject' ? (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {subjects.map(subject => (
+                      <button
+                        key={subject.id}
+                        onClick={() => handleSelectSubject(subject.id)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105"
+                      >
+                        {subject.nameAr}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <p className="text-white text-xl">في انتظار {currentPicker?.name} لاختيار الموضوع...</p>
+                    {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
+                  </div>
+                )}
+              </>
+            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentQuestion.optionsAr.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleAnswerSelect(index)}
-                disabled={showResult}
-                className={`p-4 rounded-lg text-left transition-all duration-200 ${
-                  selectedAnswer === index
-                    ? showResult
-                      ? index === currentQuestion.correctAnswer
-                        ? 'bg-green-500 text-white'
-                        : 'bg-red-500 text-white'
-                      : 'bg-blue-500 text-white'
-                    : showResult && index === currentQuestion.correctAnswer
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                }`}
-              >
-                <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span>
-                {option}
-              </button>
-            ))}
+            {/* PICK TYPE */}
+            {phase === 'pick_type' && (
+              <>
+                <div className="text-center mb-6">
+                  <span className="text-white text-xl">
+                    <strong style={{ color: currentPicker?.color }}>{currentPicker?.name}</strong> يختار نوع السؤال
+                  </span>
+                  {selectedSubject && (
+                    <p className="text-white/60 text-sm mt-2">
+                      الموضوع: {subjects.find(s => s.id === selectedSubject)?.nameAr}
+                    </p>
+                  )}
+                </div>
+                
+                {isHost && currentPicker && phase === 'pick_type' ? (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {HARDCODED_QUESTION_TYPES.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => handleSelectType(type.id)}
+                        className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-6 py-4 text-lg font-bold transition-transform hover:scale-105 min-w-[160px]"
+                      >
+                        <div>{type.nameAr}</div>
+                        <div className="text-sm text-white/70">{type.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <p className="text-white text-xl">في انتظار {currentPicker?.name} لاختيار نوع السؤال...</p>
+                    {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* QUESTION */}
+            {phase === 'question' && currentQuestion && (
+              <>
+                {/* Timer */}
+                <div className="text-center mb-4">
+                  <span className={`text-4xl font-bold ${timer <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    {timer}
+                  </span>
+                </div>
+
+                {/* Question */}
+                <h2 className="text-2xl font-bold text-white text-center mb-8">
+                  {currentQuestion.text}
+                </h2>
+
+                {/* Answering (each player answers individually) */}
+                <div className="mb-6">
+                  <div
+                    className="text-center py-2 rounded-lg mb-3"
+                    style={{ backgroundColor: `${players.find(p => p.id === playerId)?.color || '#3b82f6'}60` }}
+                  >
+                    <span className="text-white font-bold">أنت: {players.find(p => p.id === playerId)?.name}</span>
+                    {myAnswer && <span className="text-green-300 mr-2"> ✓ تم الإجابة</span>}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {currentQuestion.options.map(opt => {
+                      const selected = myAnswer === opt.id;
+                      const locked = !!myAnswer;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => handleAnswer(opt.id)}
+                          disabled={locked}
+                          className={`p-4 rounded-xl text-white text-lg transition-all ${
+                            selected ? 'bg-blue-600 ring-4 ring-blue-400' :
+                            locked ? 'bg-white/10 opacity-50 cursor-not-allowed' :
+                            'bg-white/20 hover:bg-white/30'
+                          }`}
+                        >
+                          {opt.text}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Show Results Button (Host only) */}
+                {isHost && (
+                  <div className="text-center mt-4">
+                    <button
+                      onClick={handleRevealResults}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl text-xl font-bold"
+                    >
+                      كشف الإجابة
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* RESULTS */}
+            {phase === 'results' && currentQuestion && (
+              <>
+                <h2 className="text-2xl font-bold text-white text-center mb-4">
+                  {currentQuestion.text}
+                </h2>
+
+                {/* Correct Answer */}
+                <div className="bg-green-600/30 border-2 border-green-500 rounded-xl p-4 mb-6 text-center">
+                  <p className="text-green-400 text-sm">الإجابة الصحيحة:</p>
+                  <p className="text-white text-xl font-bold">
+                    {currentQuestion.options.find(o => o.isCorrect)?.text}
+                  </p>
+                </div>
+
+                {/* Player Results */}
+                {players.map(player => {
+                  const answer = playerAnswers[player.id];
+                  const selected = answer ? currentQuestion.options?.find(o => o.id === answer.optionId) : null;
+                  const correct = selected?.isCorrect;
+                  const isFaster = answer && correct && Object.values(playerAnswers).some(a => 
+                    a && a.timestamp < answer.timestamp && 
+                    currentQuestion.options?.find(o => o.id === a.optionId)?.isCorrect
+                  );
+                  
+                  return (
+                    <div
+                      key={player.id}
+                      className={`mb-3 p-4 rounded-xl ${correct ? 'bg-green-600/30' : 'bg-red-600/30'}`}
+                    >
+                      <div className="flex justify-between">
+                        <span className="text-white font-bold">{player.name}</span>
+                        <span className={correct ? 'text-green-400' : 'text-red-400'}>
+                          {!answer ? 'لم يجب ❌' : 
+                           correct ? `صحيح ✓ +${currentQuestion.points}${isFaster ? ' (أسرع +5)' : ''}` : 
+                           'خطأ ❌'}
+                        </span>
+                      </div>
+                      {answer && (
+                        <p className="text-white/60 text-sm">اختار: {selected?.text}</p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Next Round Button (Host only) */}
+                {isHost && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={handleNextRound}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-xl font-bold"
+                    >
+                      الجولة التالية ←
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
           </div>
-
-          {selectedAnswer !== null && !showResult && (
-            <div className="text-center mt-6">
-              <button
-                onClick={handleSubmitAnswer}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg"
-              >
-                تأكيد الإجابة
-              </button>
-            </div>
-          )}
-
-          {showResult && (
-            <div className="text-center mt-6">
-              <p className="text-xl font-bold text-green-600">
-                {selectedAnswer === currentQuestion.correctAnswer ? 'إجابة صحيحة! 🎉' : 'إجابة خاطئة 😞'}
-              </p>
-              <p className="text-gray-600 mt-2">
-                الإجابة الصحيحة: {currentQuestion.optionsAr[currentQuestion.correctAnswer]}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg"
-          >
-            العودة للقائمة الرئيسية
-          </button>
         </div>
       </div>
-    </div>
+    </WoodyBackground>
   );
 };
 
