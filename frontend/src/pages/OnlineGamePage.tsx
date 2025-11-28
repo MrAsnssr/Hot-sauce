@@ -328,7 +328,8 @@ const OnlineGamePage: React.FC = () => {
   const typePickerTeam = teams[typePickerIndex];
 
   const handleSelectSubject = (subjectId: string) => {
-    if (!isHost || phase !== 'pick_subject') return;
+    // Only allow if host AND host's team is the subject picker team
+    if (!isHost || phase !== 'pick_subject' || !playerTeamId || playerTeamId !== subjectPickerTeam?.id) return;
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
@@ -349,7 +350,8 @@ const OnlineGamePage: React.FC = () => {
   };
 
   const handleSelectType = (typeId: string) => {
-    if (!isHost || phase !== 'pick_type') return;
+    // Only allow if host AND host's team is the type picker team
+    if (!isHost || phase !== 'pick_type' || !playerTeamId || playerTeamId !== typePickerTeam?.id) return;
     setSelectedType(typeId);
     if (socket) {
       socket.emit('select-type', { gameId: roomCode, typeId });
@@ -511,7 +513,7 @@ const OnlineGamePage: React.FC = () => {
                   </span>
                 </div>
                 
-                {isHost ? (
+                {isHost && playerTeamId === subjectPickerTeam?.id ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {subjects.map(subject => (
                       <button
@@ -546,7 +548,7 @@ const OnlineGamePage: React.FC = () => {
                   )}
                 </div>
                 
-                {isHost ? (
+                {isHost && playerTeamId === typePickerTeam?.id ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {HARDCODED_QUESTION_TYPES.map(type => (
                       <button
