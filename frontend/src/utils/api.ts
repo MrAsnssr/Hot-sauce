@@ -16,28 +16,46 @@ const getApiUrl = (): string => {
     return '/api';
   }
   
-  // In production on Render, use the backend URL
-  // The backend is deployed at arabic-trivia-backend.onrender.com
+  // In production on Render - TRY THESE URLs
+  // Update this with your actual backend URL from Render dashboard
   const backendUrl = 'https://arabic-trivia-backend.onrender.com/api';
-  console.log('Using production backend:', backendUrl);
+  console.log('🌐 Production mode - using backend:', backendUrl);
+  console.log('🔗 If API fails, check your Render backend URL and update api.ts');
   return backendUrl;
 };
 
 const API_URL = getApiUrl();
+console.log('📡 API Base URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000,
+  timeout: 30000,
 });
 
 // Log all requests for debugging
 api.interceptors.request.use((config) => {
-  console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+  console.log(`📤 API: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
   return config;
 });
+
+// Log errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('❌ API Error:', error.message);
+    if (error.response) {
+      console.error('   Status:', error.response.status);
+      console.error('   Data:', error.response.data);
+    } else if (error.code === 'ERR_NETWORK') {
+      console.error('   Backend may not be running or CORS issue');
+      console.error('   Check your backend URL in Render dashboard');
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Add response interceptor for better error handling
 api.interceptors.response.use(

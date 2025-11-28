@@ -39,6 +39,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://hot-sauce.onrender.com',
   'https://hot-sauce-1.onrender.com',
   'https://hot-sauce-frontend.onrender.com',
   process.env.FRONTEND_URL,

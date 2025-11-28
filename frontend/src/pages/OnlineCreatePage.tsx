@@ -46,14 +46,21 @@ const OnlineCreatePage: React.FC = () => {
   const loadSubjects = async () => {
     try {
       const res = await api.get('/subjects');
-      const mapped = (res.data || []).map((s: any) => ({
+      console.log('Subjects API response:', res.data);
+      
+      // Ensure we have an array
+      const data = Array.isArray(res.data) ? res.data : 
+                   (res.data?.subjects ? res.data.subjects : []);
+      
+      const mapped = data.map((s: any) => ({
         id: s._id || s.id,
         nameAr: s.nameAr || s.name,
       }));
       setSubjects(mapped);
       // Select all by default
       setSelectedSubjects(mapped.map((s: Subject) => s.id));
-    } catch {
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
       setSubjects([{ id: '1', nameAr: 'ثقافة عامة' }]);
       setSelectedSubjects(['1']);
     }

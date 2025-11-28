@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -7,6 +8,29 @@ const HomePage: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showSauceInfo, setShowSauceInfo] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [questionCount, setQuestionCount] = useState(0);
+
+  // Check API connection on mount
+  useEffect(() => {
+    const checkApi = async () => {
+      try {
+        const res = await api.get('/health');
+        if (res.data?.status === 'ok') {
+          setApiStatus('ok');
+          // Also check question count
+          const qRes = await api.get('/questions');
+          setQuestionCount(qRes.data?.length || 0);
+        } else {
+          setApiStatus('error');
+        }
+      } catch (e) {
+        console.error('API check failed:', e);
+        setApiStatus('error');
+      }
+    };
+    checkApi();
+  }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +69,23 @@ const HomePage: React.FC = () => {
           `,
         }}
       />
+
+      {/* API Status Indicator */}
+      <div className="absolute bottom-4 left-4 z-20 text-xs">
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+          apiStatus === 'ok' ? 'bg-green-600' : 
+          apiStatus === 'error' ? 'bg-red-600' : 'bg-yellow-600'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${
+            apiStatus === 'ok' ? 'bg-green-300' : 
+            apiStatus === 'error' ? 'bg-red-300' : 'bg-yellow-300 animate-pulse'
+          }`} />
+          <span className="text-white">
+            {apiStatus === 'ok' ? `متصل (${questionCount} سؤال)` : 
+             apiStatus === 'error' ? 'غير متصل' : 'جاري الاتصال...'}
+          </span>
+        </div>
+      </div>
 
       {/* Help Button */}
       <button
