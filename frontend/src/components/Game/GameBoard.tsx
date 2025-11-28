@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameState } from '../../hooks/useGameState';
 import { useSocket } from '../../hooks/useSocket';
-import { GameState, Team } from '../../types/game.types';
+import { GameState, Player } from '../../types/game.types';
 import { Subject, QuestionType, Question } from '../../types/question.types';
 import { Power } from '../../types/power.types';
 import { ScoreBoard } from './ScoreBoard';
@@ -40,7 +40,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
 
   const socket = useSocket(gameId);
   const [phase, setPhase] = useState<GamePhase>('setup');
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [usedPowers, setUsedPowers] = useState<string[]>([]);
   const [currentPower, setCurrentPower] = useState<Power | null>(null);
@@ -52,13 +52,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
     if (socket && gameId) {
       socket.on('game-state', (state: GameState) => {
         setGameState(state);
-        setTeams(state.teams || []);
+        setPlayers(state.players || []);
         setCurrentRound(state.currentRound || 1);
       });
 
       socket.on('game-state-updated', (state: GameState) => {
         setGameState(state);
-        setTeams(state.teams || []);
+        setPlayers(state.players || []);
         setCurrentRound(state.currentRound || 1);
       });
 
@@ -69,19 +69,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
     }
   }, [socket, gameId, setGameState]);
 
-  const handleTeamCreate = (name: string) => {
-    const newTeam: Team = {
-      id: `team-${Date.now()}`,
+  const handlePlayerCreate = (name: string) => {
+    const newPlayer: Player = {
+      id: `player-${Date.now()}`,
       name,
       score: 0,
-      role: teams.length === 0 ? 'subject_picker' : 'type_picker',
     };
-    setTeams([...teams, newTeam]);
+    setPlayers([...players, newPlayer]);
   };
 
   const handleStartGame = () => {
-    if (teams.length < 2) {
-      alert('يجب إضافة فريقين على الأقل');
+    if (players.length < 2) {
+      alert('يجب إضافة لاعبين على الأقل');
       return;
     }
     setPhase('select_subject');
@@ -155,21 +154,21 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
       currentPower?.effect
     );
 
-    const currentTeam = gameState.teams.find(t => t.role === 'subject_picker') || gameState.teams[0];
-    const updatedTeams = teams.map((team) => {
-      if (team.id === currentTeam.id) {
-        return { ...team, score: team.score + points };
+    const currentPlayer = gameState.players[0] || players[0];
+    const updatedPlayers = players.map((player) => {
+      if (player.id === currentPlayer?.id) {
+        return { ...player, score: player.score + points };
       }
-      return team;
+      return player;
     });
-    setTeams(updatedTeams);
+    setPlayers(updatedPlayers);
 
     if (socket && gameId) {
       socket.emit('game-action', {
         gameId,
         action: 'answer-question',
         payload: {
-          teamId: currentTeam.id,
+          playerId: currentPlayer?.id,
           isCorrect,
           points,
         },
@@ -202,8 +201,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
           <h1 className="text-4xl font-bold text-white text-center mb-8">
             لعبة الأسئلة العربية
           </h1>
-          <TeamSelector onTeamCreate={handleTeamCreate} teams={teams} />
-          {teams.length >= 2 && (
+          <TeamSelector onTeamCreate={handlePlayerCreate} teams={players} />
+          {players.length >= 2 && (
             <div className="text-center">
               <Button onClick={handleStartGame} size="lg">
                 بدء اللعبة
@@ -227,7 +226,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
           </div>
         </div>
 
-        <ScoreBoard teams={teams} />
+        <ScoreBoard teams={players} />
 
         {phase === 'select_subject' && (
           <SubjectPicker
@@ -263,8 +262,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
         {phase === 'answer_result' && (
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
-              {teams[0]?.score !== undefined
-                ? `النقاط: ${teams[0].score}`
+              {players[0]?.score !== undefined
+                ? `النقاط: ${players[0].score}`
                 : 'انتهى الوقت'}
             </h2>
           </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, Team, Round } from '../types/game.types'; // Round is used in addRound
+import { GameState, Player, Round } from '../types/game.types'; // Round is used in addRound
 import { Question, Subject, QuestionType } from '../types/question.types';
 
 interface GameStore {
@@ -8,7 +8,7 @@ interface GameStore {
   selectedSubject: Subject | null;
   selectedQuestionType: QuestionType | null;
   setGameState: (state: GameState) => void;
-  updateTeam: (teamId: string, updates: Partial<Team>) => void;
+  updatePlayer: (playerId: string, updates: Partial<Player>) => void;
   addRound: (round: Round) => void;
   setCurrentQuestion: (question: Question | null) => void;
   setSelectedSubject: (subject: Subject | null) => void;
@@ -22,14 +22,14 @@ export const useGameState = create<GameStore>((set) => ({
   selectedSubject: null,
   selectedQuestionType: null,
   setGameState: (state) => set({ gameState: state }),
-  updateTeam: (teamId, updates) =>
+  updatePlayer: (playerId, updates) =>
     set((state) => {
       if (!state.gameState) return state;
-      const teams = state.gameState.teams.map((team) =>
-        team.id === teamId ? { ...team, ...updates } : team
+      const players = state.gameState.players.map((player) =>
+        player.id === playerId ? { ...player, ...updates } : player
       );
       return {
-        gameState: { ...state.gameState, teams },
+        gameState: { ...state.gameState, players },
       };
     }),
   addRound: (round) =>
