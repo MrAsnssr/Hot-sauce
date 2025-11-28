@@ -77,8 +77,13 @@ const OnlineCreatePage: React.FC = () => {
                      (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
     
     const newSocket = io(socketUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Allow fallback to polling
       reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
     });
 
     newSocket.on('connect', () => {

@@ -36,9 +36,13 @@ const OnlineJoinPage: React.FC = () => {
                      (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://hot-sauce.onrender.com');
     
     const socket = io(socketUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Allow fallback to polling
       reconnection: true,
-      timeout: 10000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
     });
 
     let connected = false;

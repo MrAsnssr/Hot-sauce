@@ -27,10 +27,13 @@ export const useSocket = (gameId?: string) => {
     const socketUrl = getSocketUrl();
     console.log('🔌 Socket connecting to:', socketUrl);
     const socket = io(socketUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Allow fallback to polling
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
     });
 
     socket.on('connect', () => {

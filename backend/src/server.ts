@@ -31,6 +31,10 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  transports: ['websocket', 'polling'], // Allow both transports
+  allowEIO3: true, // Allow Engine.IO v3 clients
+  pingTimeout: 60000, // Increase timeout for Render
+  pingInterval: 25000,
 });
 
 const PORT = process.env.PORT || 5000;
