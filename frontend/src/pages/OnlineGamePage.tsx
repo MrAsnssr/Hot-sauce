@@ -389,8 +389,12 @@ const OnlineGamePage: React.FC = () => {
   const typePickerTeam = teams[typePickerIndex];
 
   const handleSelectSubject = (subjectId: string) => {
-    // Host can always pick (acts as game master), but only in correct phase
+    // Host can pick, but only when it's the subject picker team's turn
+    // Check that we're in the right phase AND it's the subject picker team's turn
     if (!isHost || phase !== 'pick_subject') return;
+    // Verify it's actually the subject picker team's turn (host acts on behalf of that team)
+    if (!subjectPickerTeam) return;
+    
     setSelectedSubject(subjectId);
     if (socket) {
       socket.emit('select-subject', { gameId: roomCode, subjectId });
@@ -401,8 +405,12 @@ const OnlineGamePage: React.FC = () => {
   };
 
   const handleSelectType = (typeId: string) => {
-    // Host can always pick (acts as game master), but only in correct phase
+    // Host can pick, but only when it's the type picker team's turn
+    // Check that we're in the right phase AND it's the type picker team's turn
     if (!isHost || phase !== 'pick_type') return;
+    // Verify it's actually the type picker team's turn (host acts on behalf of that team)
+    if (!typePickerTeam) return;
+    
     setSelectedType(typeId);
     if (socket) {
       socket.emit('select-type', { gameId: roomCode, typeId });
@@ -558,7 +566,7 @@ const OnlineGamePage: React.FC = () => {
                   </span>
                 </div>
                 
-                {isHost ? (
+                {isHost && subjectPickerTeam && phase === 'pick_subject' ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {subjects.map(subject => (
                       <button
@@ -574,6 +582,7 @@ const OnlineGamePage: React.FC = () => {
                   <div className="text-center py-12">
                     <div className="text-4xl mb-4">⏳</div>
                     <p className="text-white text-xl">في انتظار {subjectPickerTeam?.name} لاختيار الموضوع...</p>
+                    {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
                   </div>
                 )}
               </>
@@ -593,7 +602,7 @@ const OnlineGamePage: React.FC = () => {
                   )}
                 </div>
                 
-                {isHost ? (
+                {isHost && typePickerTeam && phase === 'pick_type' ? (
                   <div className="flex flex-wrap justify-center gap-4">
                     {HARDCODED_QUESTION_TYPES.map(type => (
                       <button
@@ -610,6 +619,7 @@ const OnlineGamePage: React.FC = () => {
                   <div className="text-center py-12">
                     <div className="text-4xl mb-4">⏳</div>
                     <p className="text-white text-xl">في انتظار {typePickerTeam?.name} لاختيار نوع السؤال...</p>
+                    {!isHost && <p className="text-white/60 text-sm mt-2">فقط المضيف يمكنه الاختيار</p>}
                   </div>
                 )}
               </>
