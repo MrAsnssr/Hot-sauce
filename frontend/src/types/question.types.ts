@@ -4,13 +4,40 @@ export interface QuestionOption {
   isCorrect: boolean;
 }
 
+// For Order Challenge questions
+export interface OrderItem {
+  id: string;
+  text: string;
+  correctPosition: number; // 1, 2, 3, 4...
+}
+
+// For Who and Who questions
+export interface Person {
+  id: string;
+  name: string;
+  imageUrl?: string;
+}
+
+export interface Achievement {
+  id: string;
+  text: string;
+  personId: string; // Links to the correct person
+}
+
+export interface WhoAndWhoData {
+  people: [Person, Person]; // Exactly 2 people
+  achievements: [Achievement, Achievement]; // Exactly 2 achievements
+}
+
 export interface Question {
   id: string;
   text: string;
   subjectId: string;
   questionTypeId: string;
-  options?: QuestionOption[];
-  correctAnswer?: string;
+  options?: QuestionOption[]; // For four-options type
+  correctAnswer?: string; // For fill-blank type
+  orderItems?: OrderItem[]; // For order-challenge type
+  whoAndWhoData?: WhoAndWhoData; // For who-and-who type
   imageUrl?: string;
   audioUrl?: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -31,6 +58,8 @@ export interface QuestionType {
   supportsAudio: boolean;
   defaultTimeLimit: number;
   validationRules?: Record<string, any>;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Subject {
@@ -43,4 +72,3 @@ export interface Subject {
   createdAt: Date;
   updatedAt: Date;
 }
-

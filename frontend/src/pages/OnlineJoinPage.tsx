@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
 
 const OnlineJoinPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +42,8 @@ const OnlineJoinPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <WoodyBackground>
+      <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">انضم للعبة</h1>
@@ -105,7 +107,8 @@ const OnlineJoinPage: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

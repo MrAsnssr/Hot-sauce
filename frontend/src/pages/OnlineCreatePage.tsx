@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
 import { Subject, QuestionType } from '../types/question.types';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
+import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
 
 interface Team {
@@ -25,7 +27,7 @@ const OnlineCreatePage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   
   // Game configuration
-  const [teams, setTeams] = useState<Team[]>([
+  const [teams] = useState<Team[]>([
     { id: 'team-1', name: 'الفريق الأول', color: TEAM_COLORS[0] },
     { id: 'team-2', name: 'الفريق الثاني', color: TEAM_COLORS[1] },
   ]);
@@ -55,18 +57,17 @@ const OnlineCreatePage: React.FC = () => {
   }, []);
 
   const fetchGameData = async () => {
+    // Question types are hardcoded
+    setQuestionTypes(HARDCODED_QUESTION_TYPES);
+    setSelectedTypes(HARDCODED_QUESTION_TYPES.map(t => t.id));
+    
     try {
-      const [subjectsRes, typesRes] = await Promise.all([
-        api.get('/subjects'),
-        api.get('/question-types'),
-      ]);
+      const subjectsRes = await api.get('/subjects');
       setSubjects(subjectsRes.data);
-      setQuestionTypes(typesRes.data);
       // Select all by default
       setSelectedSubjects(subjectsRes.data.map((s: Subject) => s.id));
-      setSelectedTypes(typesRes.data.map((t: QuestionType) => t.id));
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching subjects:', error);
       // Mock data
       const mockSubjects = [
         { id: '1', name: 'History', nameAr: 'التاريخ' },
@@ -74,14 +75,8 @@ const OnlineCreatePage: React.FC = () => {
         { id: '3', name: 'Sports', nameAr: 'الرياضة' },
         { id: '4', name: 'Geography', nameAr: 'الجغرافيا' },
       ];
-      const mockTypes = [
-        { id: '1', name: 'Multiple Choice', nameAr: 'اختيار من متعدد', description: '' },
-        { id: '2', name: 'True/False', nameAr: 'صح أو خطأ', description: '' },
-      ];
       setSubjects(mockSubjects as Subject[]);
-      setQuestionTypes(mockTypes as QuestionType[]);
       setSelectedSubjects(mockSubjects.map(s => s.id));
-      setSelectedTypes(mockTypes.map(t => t.id));
     }
   };
 
@@ -100,12 +95,6 @@ const OnlineCreatePage: React.FC = () => {
   const toggleType = (id: string) => {
     setSelectedTypes((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-  };
-
-  const assignPlayerToTeam = (playerId: string, teamId: string) => {
-    setJoinedPlayers((prev) =>
-      prev.map((p) => (p.id === playerId ? { ...p, teamId } : p))
     );
   };
 
@@ -145,7 +134,8 @@ const OnlineCreatePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-4">
+    <WoodyBackground>
+      <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -315,7 +305,8 @@ const OnlineCreatePage: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

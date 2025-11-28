@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
 
 const OnlineWaitingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,8 @@ const OnlineWaitingPage: React.FC = () => {
   }, [roomCode, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <WoodyBackground>
+      <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8">
           <div className="text-6xl mb-6 animate-pulse">⏳</div>
@@ -47,7 +49,8 @@ const OnlineWaitingPage: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

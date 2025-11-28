@@ -5,6 +5,7 @@ import { Timer } from '../components/Shared/Timer';
 import { Question } from '../types/question.types';
 import { Power } from '../types/power.types';
 import { PowerRegistry } from '../types/power.registry';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
 import api from '../utils/api';
 
 interface Player {
@@ -163,14 +164,17 @@ const OnlineGamePage: React.FC = () => {
 
   if (!gameConfig || teams.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-2xl">جاري التحميل...</div>
-      </div>
+      <WoodyBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-white text-2xl">جاري التحميل...</div>
+        </div>
+      </WoodyBackground>
     );
   }
 
   return (
-    <div className="min-h-screen p-4">
+    <WoodyBackground>
+      <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -331,7 +335,8 @@ const OnlineGamePage: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

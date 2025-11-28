@@ -1,0 +1,951 @@
+[
+  {
+    "text": "أي نظام تشغيل مما يلي هو مفتوح المصدر بشكل كامل؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "ويندوز 11", "isCorrect": false },
+      { "id": "2", "text": "ماك أو إس", "isCorrect": false },
+      { "id": "3", "text": "أوبونتو (توزيعة لينكس)", "isCorrect": true },
+      { "id": "4", "text": "آي أو إس", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو المكون المسؤول بشكل أساسي عن تنفيذ تعليمات البرنامج وجلبها ومعالجتها؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "وحدة معالجة الرسومات (GPU)", "isCorrect": false },
+      { "id": "2", "text": "الذاكرة العشوائية (RAM)", "isCorrect": false },
+      { "id": "3", "text": "وحدة المعالجة المركزية (CPU)", "isCorrect": true },
+      { "id": "4", "text": "القرص الصلب (HDD)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو البروتوكول القياسي المستخدم لنقل صفحات الويب بشكل آمن؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "HTTP", "isCorrect": false },
+      { "id": "2", "text": "FTP", "isCorrect": false },
+      { "id": "3", "text": "HTTPS", "isCorrect": true },
+      { "id": "4", "text": "SMTP", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي من لغات البرمجة التالية تُستخدم بشكل شائع في تطوير تطبيقات الذكاء الاصطناعي وتعلم الآلة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "C#", "isCorrect": false },
+      { "id": "2", "text": "Python", "isCorrect": true },
+      { "id": "3", "text": "PHP", "isCorrect": false },
+      { "id": "4", "text": "Swift", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "يُطلق على مجموعة البيانات المنظمة التي يمكن الوصول إليها وإدارتها إلكترونياً اسم:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "قاعدة البيانات", "isCorrect": true },
+      { "id": "2", "text": "واجهة برمجة التطبيقات (API)", "isCorrect": false },
+      { "id": "3", "text": "مترجم (Compiler)", "isCorrect": false },
+      { "id": "4", "text": "هيكل البيانات", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "في نموذج OSI، أي طبقة تتعامل مع العنونة المنطقية (IP) وتوجيه حزم البيانات عبر الشبكات المتعددة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "طبقة التطبيق", "isCorrect": false },
+      { "id": "2", "text": "طبقة النقل", "isCorrect": false },
+      { "id": "3", "text": "طبقة ربط البيانات", "isCorrect": false },
+      { "id": "4", "text": "طبقة الشبكة", "isCorrect": true }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي التقنية التي تعتمد على سجل موزع ولامركزي يتم فيه تجميع المعاملات في كتل متسلسلة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الواقع الافتراضي (VR)", "isCorrect": false },
+      { "id": "2", "text": "الحوسبة السحابية", "isCorrect": false },
+      { "id": "3", "text": "البلوك تشين (Blockchain)", "isCorrect": true },
+      { "id": "4", "text": "الحوسبة الكمومية", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي مصطلح يصف محاولة الحصول على معلومات حساسة (مثل كلمات المرور) عن طريق التنكر كمؤسسة موثوقة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "جدار الحماية (Firewall)", "isCorrect": false },
+      { "id": "2", "text": "التصيد الاحتيالي (Phishing)", "isCorrect": true },
+      { "id": "3", "text": "التشفير", "isCorrect": false },
+      { "id": "4", "text": "برامج مكافحة الفيروسات", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو نوع الذاكرة التي تعتبر متطايرة وتفقد محتوياتها بمجرد انقطاع التيار الكهربائي عن الكمبيوتر؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الذاكرة للقراءة فقط (ROM)", "isCorrect": false },
+      { "id": "2", "text": "الذاكرة العشوائية (RAM)", "isCorrect": true },
+      { "id": "3", "text": "محرك الأقراص الحالة الصلبة (SSD)", "isCorrect": false },
+      { "id": "4", "text": "القرص الصلب (HDD)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "اختصار DNS في الشبكات يرمز إلى:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "Digital Network Service", "isCorrect": false },
+      { "id": "2", "text": "Domain Name System", "isCorrect": true },
+      { "id": "3", "text": "Data Node Server", "isCorrect": false },
+      { "id": "4", "text": "Dynamic Network Security", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "في هياكل البيانات، ما هو الهيكل الذي يتبع مبدأ 'الداخل أخيراً يخرج أولاً' (LIFO)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "المكدس (Stack)", "isCorrect": true },
+      { "id": "2", "text": "الطابور (Queue)", "isCorrect": false },
+      { "id": "3", "text": "القائمة المرتبطة (Linked List)", "isCorrect": false },
+      { "id": "4", "text": "المصفوفة (Array)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي نموذج للحوسبة السحابية يتيح للمستخدمين استئجار البنية التحتية للحوسبة مثل الخوادم والتخزين والشبكات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "البرامج كخدمة (SaaS)", "isCorrect": false },
+      { "id": "2", "text": "المنصة كخدمة (PaaS)", "isCorrect": false },
+      { "id": "3", "text": "البنية التحتية كخدمة (IaaS)", "isCorrect": true },
+      { "id": "4", "text": "الوظيفة كخدمة (FaaS)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو الاختصار الذي يشير إلى شبكة من الأجهزة المادية المتصلة بالإنترنت والقادرة على التفاعل وجمع وتبادل البيانات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "AI", "isCorrect": false },
+      { "id": "2", "text": "VR", "isCorrect": false },
+      { "id": "3", "text": "IoT", "isCorrect": true },
+      { "id": "4", "text": "ML", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي جهاز شبكة يعمل على ربط شبكات محلية (LANs) مختلفة ببعضها البعض وبتوجيه حركة مرور البيانات بينها؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "المودم (Modem)", "isCorrect": false },
+      { "id": "2", "text": "الموجه (Router)", "isCorrect": true },
+      { "id": "3", "text": "المحول (Switch)", "isCorrect": false },
+      { "id": "4", "text": "المكرر (Repeater)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو الفرع من تعلم الآلة الذي يستخدم شبكات عصبية عميقة (متعددة الطبقات) لمعالجة البيانات المعقدة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التعلم المعزز", "isCorrect": false },
+      { "id": "2", "text": "التعلم العميق (Deep Learning)", "isCorrect": true },
+      { "id": "3", "text": "التعلم تحت الإشراف", "isCorrect": false },
+      { "id": "4", "text": "التجميع (Clustering)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي من هذه اللغات تُستخدم بشكل أساسي لتحديد هيكل ومحتوى صفحة الويب؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "HTML", "isCorrect": true },
+      { "id": "2", "text": "CSS", "isCorrect": false },
+      { "id": "3", "text": "JavaScript", "isCorrect": false },
+      { "id": "4", "text": "SQL", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي من هذه التقنيات تُستخدم لوصف نمط وتنسيق صفحات الويب (الألوان والخطوط وما إلى ذلك)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "CSS", "isCorrect": true },
+      { "id": "2", "text": "HTML", "isCorrect": false },
+      { "id": "3", "text": "PHP", "isCorrect": false },
+      { "id": "4", "text": "Python", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "وحدة قياس سعة البيانات التي تعادل 1024 بايت هي:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "كيلوبايت (KB)", "isCorrect": true },
+      { "id": "2", "text": "ميجابايت (MB)", "isCorrect": false },
+      { "id": "3", "text": "جيجابايت (GB)", "isCorrect": false },
+      { "id": "4", "text": "تيرابايت (TB)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو نوع التشفير الذي يستخدم مفتاحين مختلفين: مفتاح عام للتشفير ومفتاح خاص لفك التشفير؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التشفير المتماثل", "isCorrect": false },
+      { "id": "2", "text": "دالة التجزئة (Hashing)", "isCorrect": false },
+      { "id": "3", "text": "التشفير غير المتماثل (Asymmetric Encryption)", "isCorrect": true },
+      { "id": "4", "text": "تشفير بلوك (Block Cipher)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي لغة استعلام تُستخدم بشكل أساسي لإدارة واسترجاع البيانات في قواعد البيانات العلائقية (Relational Databases)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "JSON", "isCorrect": false },
+      { "id": "2", "text": "SQL", "isCorrect": true },
+      { "id": "3", "text": "XML", "isCorrect": false },
+      { "id": "4", "text": "NoSQL", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "نظام التشغيل الذي تم تطويره بواسطة شركة آبل خصيصًا لهواتفها الذكية وأجهزتها اللوحية هو:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "أندرويد", "isCorrect": false },
+      { "id": "2", "text": "ويندوز موبايل", "isCorrect": false },
+      { "id": "3", "text": "iOS", "isCorrect": true },
+      { "id": "4", "text": "لينكس", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو الهدف الرئيسي من وجود ذاكرة التخزين المؤقت (Cache Memory) في الكمبيوتر؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "تخزين البيانات بشكل دائم", "isCorrect": false },
+      { "id": "2", "text": "تسريع الوصول إلى البيانات المستخدمة بشكل متكرر", "isCorrect": true },
+      { "id": "3", "text": "إدارة مدخلات ومخرجات الأجهزة الطرفية", "isCorrect": false },
+      { "id": "4", "text": "تنفيذ العمليات الحسابية والمنطقية", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي وظيفة بروتوكول DHCP في الشبكة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "تحويل أسماء النطاقات إلى عناوين IP", "isCorrect": false },
+      { "id": "2", "text": "توفير عناوين IP تلقائيًا للأجهزة", "isCorrect": true },
+      { "id": "3", "text": "نقل ملفات البريد الإلكتروني", "isCorrect": false },
+      { "id": "4", "text": "تشفير حركة المرور بين الخادم والعميل", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "برنامج مصمم لتتبع وتسجيل ضغطات المفاتيح الخاصة بالمستخدم دون علمه هو:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "حصان طروادة (Trojan)", "isCorrect": false },
+      { "id": "2", "text": "برامج الفدية (Ransomware)", "isCorrect": false },
+      { "id": "3", "text": "مسجل لوحة المفاتيح (Keylogger)", "isCorrect": true },
+      { "id": "4", "text": "فيروس كمبيوتر (Virus)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هي العملية التي يتم فيها تحويل الكود المصدري المكتوب بلغة عالية المستوى إلى كود آلة قابل للتنفيذ مرة واحدة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التفسير (Interpretation)", "isCorrect": false },
+      { "id": "2", "text": "التجميع (Compilation)", "isCorrect": true },
+      { "id": "3", "text": "التصحيح (Debugging)", "isCorrect": false },
+      { "id": "4", "text": "التنفيذ (Execution)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي خصائص ACID المستخدمة لضمان موثوقية معاملات قواعد البيانات العلائقية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "السرعة، الكفاءة، التوافر، التكلفة", "isCorrect": false },
+      { "id": "2", "text": "الأمان، التناسق، العزل، الدوام (Atomicity, Consistency, Isolation, Durability)", "isCorrect": true },
+      { "id": "3", "text": "التكرار، التوافق، الإدارة، الدقة", "isCorrect": false },
+      { "id": "4", "text": "النموذجية، التعددية، التجريد، التغليف", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو نموذج الحوسبة السحابية الذي يوفر منصة لتطوير واختبار ونشر التطبيقات دون الحاجة لإدارة البنية التحتية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "البرامج كخدمة (SaaS)", "isCorrect": false },
+      { "id": "2", "text": "المنصة كخدمة (PaaS)", "isCorrect": true },
+      { "id": "3", "text": "البنية التحتية كخدمة (IaaS)", "isCorrect": false },
+      { "id": "4", "text": "الشبكة كخدمة (NaaS)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هي الوظيفة الأساسية للغة JavaScript في تطوير الويب الحديث؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "تحديد هيكل الصفحة باستخدام العلامات", "isCorrect": false },
+      { "id": "2", "text": "إدارة قواعد البيانات العلائقية", "isCorrect": false },
+      { "id": "3", "text": "إضافة التفاعل والسلوك الديناميكي للمحتوى", "isCorrect": true },
+      { "id": "4", "text": "تنسيق مظهر العناصر المرئية", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "من هو المؤسس المشارك لشركة مايكروسوفت بجانب بول ألين؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "ستيف جوبز", "isCorrect": false },
+      { "id": "2", "text": "بيل جيتس", "isCorrect": true },
+      { "id": "3", "text": "جيف بيزوس", "isCorrect": false },
+      { "id": "4", "text": "لاري بيدج", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي مقياس يُستخدم لتقييم أداء نماذج التصنيف في تعلم الآلة، ويحدد نسبة التنبؤات الصحيحة من إجمالي التنبؤات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الكمون (Latency)", "isCorrect": false },
+      { "id": "2", "text": "الدقة (Accuracy)", "isCorrect": true },
+      { "id": "3", "text": "التجزئة (Segmentation)", "isCorrect": false },
+      { "id": "4", "text": "الإنتاجية (Throughput)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو النطاق الترددي اللاسلكي الذي يوفر سرعات عالية على المدى القصير ويقلل من الازدحام في المناطق المكتظة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "2.4 GHz", "isCorrect": false },
+      { "id": "2", "text": "5 GHz", "isCorrect": true },
+      { "id": "3", "4", "text": "60 GHz", "isCorrect": false },
+      { "id": "4", "text": "1.8 GHz", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "أي من المنافذ التالية يُستخدم عادةً لنقل إشارات الفيديو والصوت عالية الجودة من الكمبيوتر إلى الشاشة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "USB-C", "isCorrect": false },
+      { "id": "2", "text": "DisplayPort", "isCorrect": true },
+      { "id": "3", "4", "text": "PS/2", "isCorrect": false },
+      { "id": "4", "text": "Ethernet", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو نوع البيانات الذي لا يمكن أن يحمل سوى إحدى القيمتين 'صحيح' أو 'خطأ'؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "عدد صحيح (Integer)", "isCorrect": false },
+      { "id": "2", "text": "منطقي (Boolean)", "isCorrect": true },
+      { "id": "3", "text": "سلسلة نصية (String)", "isCorrect": false },
+      { "id": "4", "text": "عائم (Float)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو مصطلح يشير إلى استدعاء دالة لنفسها بشكل متكرر في البرمجة لحل مشكلة ما؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التجريد (Abstraction)", "isCorrect": false },
+      { "id": "2", "text": "التكرار (Iteration)", "isCorrect": false },
+      { "id": "3", "4", "text": "العَوْدِية (Recursion)", "isCorrect": true },
+      { "id": "4", "text": "التغليف (Encapsulation)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو البروتوكول الذي يوفر طبقة من التشفير والأمان لعملية الاتصال عند استخدام HTTPS؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "POP3", "isCorrect": false },
+      { "id": "2", "text": "SSL/TLS", "isCorrect": true },
+      { "id": "3", "4", "text": "IMAP", "isCorrect": false },
+      { "id": "4", "text": "ARP", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو الفرق الرئيسي بين محرك الأقراص الصلبة (HDD) ومحرك الأقراص الحالة الصلبة (SSD)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الـ HDD يحتوي على أجزاء متحركة، بينما الـ SSD يعتمد على ذاكرة فلاش ثابتة.", "isCorrect": true },
+      { "id": "2", "text": "الـ SSD يوفر سعة تخزين أكبر بكثير من الـ HDD.", "isCorrect": false },
+      { "id": "3", "4", "text": "الـ HDD أسرع بكثير في الوصول العشوائي للبيانات.", "isCorrect": false },
+      { "id": "4", "text": "كلاهما يستخدم تقنية الشريط المغناطيسي.", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي نمط تصميم في هندسة البرمجيات يفصل بين واجهة المستخدم، ومنطق العمل، والبيانات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "MVC (Model-View-Controller)", "isCorrect": true },
+      { "id": "2", "text": "الواجهة البرمجية (API)", "isCorrect": false },
+      { "id": "3", "4", "text": "التوريث (Inheritance)", "isCorrect": false },
+      { "id": "4", "text": "التغليف (Encapsulation)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "تُستخدم الـ RNNs (الشبكات العصبية المتكررة) بشكل رئيسي لمعالجة أي نوع من البيانات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الصور الثابتة", "isCorrect": false },
+      { "id": "2", "text": "تسلسل البيانات (مثل النصوص والكلام والسلاسل الزمنية)", "isCorrect": true },
+      { "id": "3", "4", "text": "البيانات الجدولية غير المرتبطة", "isCorrect": false },
+      { "id": "4", "text": "الرسومات ثلاثية الأبعاد", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي أفضل ممارسة لحماية حساباتك عبر الإنترنت تتضمن طبقة ثانية من التحقق بالإضافة إلى كلمة المرور؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التشفير من طرف إلى طرف", "isCorrect": false },
+      { "id": "2", "text": "المصادقة الثنائية (2FA)", "isCorrect": true },
+      { "id": "3", "4", "text": "استخدام جدار الحماية", "isCorrect": false },
+      { "id": "4", "text": "استخدام VPN", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هي الوحدة المسؤولة عن نقل البيانات بين جميع مكونات الكمبيوتر مثل CPU و RAM ومناطق التخزين؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "لوحة المفاتيح", "isCorrect": false },
+      { "id": "2", "text": "الناقل (Bus)", "isCorrect": true },
+      { "id": "3", "4", "text": "بطاقة الشبكة", "isCorrect": false },
+      { "id": "4", "text": "المحول (Switch)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي تقنية الواجهة الأمامية (Frontend) التي طورتها جوجل لتسهيل بناء واجهات المستخدم الديناميكية أحادية الصفحة (SPA)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "React", "isCorrect": false },
+      { "id": "2", "text": "Angular", "isCorrect": true },
+      { "id": "3", "4", "text": "Vue.js", "isCorrect": false },
+      { "id": "4", "text": "Django", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "تُعرف البيانات التي تصف بيانات أخرى (مثل معلومات حول منشئ الملف أو تاريخ إنشائه) باسم:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "البيانات الوصفية (Metadata)", "isCorrect": true },
+      { "id": "2", "text": "البيانات الضخمة (Big Data)", "isCorrect": false },
+      { "id": "3", "4", "text": "المخطط (Schema)", "isCorrect": false },
+      { "id": "4", "text": "البيانات العلائقية", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو البروتوكول الذي يستخدمه عميل البريد الإلكتروني لاستلام الرسائل والاحتفاظ بها على الخادم؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "IMAP", "isCorrect": true },
+      { "id": "2", "text": "SMTP", "isCorrect": false },
+      { "id": "3", "4", "text": "FTP", "isCorrect": false },
+      { "id": "4", "text": "HTTP", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "في الحوسبة الكمومية، ما هو ما يعادل 'البت' التقليدي الذي يمكن أن يكون 0 أو 1 أو كليهما في نفس الوقت؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الكيوبت (Qubit)", "isCorrect": true },
+      { "id": "2", "text": "البايت (Byte)", "isCorrect": false },
+      { "id": "3", "4", "text": "البت الثنائي", "isCorrect": false },
+      { "id": "4", "text": "البت الكلاسيكي", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو المبدأ الأساسي في البرمجة الشيئية الذي يشير إلى إخفاء تفاصيل التنفيذ المعقدة وعرض الوظائف الضرورية فقط؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التجريد (Abstraction)", "isCorrect": true },
+      { "id": "2", "text": "التوريث (Inheritance)", "isCorrect": false },
+      { "id": "3", "4", "text": "تعدد الأشكال (Polymorphism)", "isCorrect": false },
+      { "id": "4", "text": "التغليف (Encapsulation)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "في تعلم الآلة، ما هي المرحلة التي يتم فيها اختيار وتحويل البيانات الأولية إلى ميزات (Features) يمكن أن يفهمها النموذج؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "النشر (Deployment)", "isCorrect": false },
+      { "id": "2", "text": "هندسة الميزات (Feature Engineering)", "isCorrect": true },
+      { "id": "3", "4", "text": "الاختبار (Testing)", "isCorrect": false },
+      { "id": "4", "text": "التقييم (Evaluation)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي من هذه التقنيات لا تُعتبر نموذجًا لخدمات الحوسبة السحابية الأساسية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "SaaS", "isCorrect": false },
+      { "id": "2", "text": "BIOS", "isCorrect": true },
+      { "id": "3", "4", "text": "PaaS", "isCorrect": false },
+      { "id": "4", "text": "IaaS", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي من تقنيات الاتصال التالية يتميز باستهلاك منخفض للطاقة ويستخدم في غالبية أجهزة الـ IoT الصغيرة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "Ethernet", "isCorrect": false },
+      { "id": "2", "text": "5G", "isCorrect": false },
+      { "id": "3", "4", "text": "Bluetooth Low Energy (BLE)", "isCorrect": true },
+      { "id": "4", "text": "Wi-Fi 6", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو مصطلح يشير إلى التأخير الزمني في نقل حزمة البيانات عبر الشبكة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "النطاق الترددي (Bandwidth)", "isCorrect": false },
+      { "id": "2", "text": "الإنتاجية (Throughput)", "isCorrect": false },
+      { "id": "3", "4", "text": "الكمون (Latency)", "isCorrect": true },
+      { "id": "4", "text": "معدل البت (Bitrate)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "تُستخدم لوحة المفاتيح (Keyboard) كجهاز:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "إخراج (Output)", "isCorrect": false },
+      { "id": "2", "text": "تخزين (Storage)", "isCorrect": false },
+      { "id": "3", "4", "text": "إدخال (Input)", "isCorrect": true },
+      { "id": "4", "text": "معالجة (Processing)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "أي مكون في الكمبيوتر مسؤول عن إدارة الموارد الرئيسية، مثل الذاكرة والعمليات والأجهزة الطرفية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "نظام التشغيل (OS)", "isCorrect": true },
+      { "id": "2", "text": "محول الطاقة", "isCorrect": false },
+      { "id": "3", "4", "text": "بطاقة الصوت", "isCorrect": false },
+      { "id": "4", "text": "المتصفح (Browser)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو جهاز الشبكة الذي يقوم بتصفية حركة مرور البيانات بين أجزاء شبكة محلية استنادًا إلى عناوين MAC؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الموجه (Router)", "isCorrect": false },
+      { "id": "2", "text": "المحول (Switch)", "isCorrect": true },
+      { "id": "3", "4", "text": "المودم (Modem)", "isCorrect": false },
+      { "id": "4", "text": "الموزع (Hub)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "أي من المفاهيم التالية ينتمي إلى مبادئ البرمجة الشيئية (OOP)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "البرمجة الوظيفية", "isCorrect": false },
+      { "id": "2", "text": "التوريث (Inheritance)", "isCorrect": true },
+      { "id": "3", "4", "text": "البرمجة الإجرائية", "isCorrect": false },
+      { "id": "4", "text": "المترجم الفوري (Interpreter)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "لغة التوصيف المستخدمة لإنشاء ملفات بيانات سهلة القراءة للبشر والآلات هي:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "XML", "isCorrect": false },
+      { "id": "2", "text": "YAML", "isCorrect": false },
+      { "id": "3", "4", "text": "JSON (JavaScript Object Notation)", "isCorrect": true },
+      { "id": "4", "text": "HTML", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو المفهوم الذي يسمح لرمز واحد بالعمل مع أنواع بيانات مختلفة أو فئات مختلفة في البرمجة الشيئية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التغليف (Encapsulation)", "isCorrect": false },
+      { "id": "2", "text": "التجريد (Abstraction)", "isCorrect": false },
+      { "id": "3", "4", "text": "تعدد الأشكال (Polymorphism)", "isCorrect": true },
+      { "id": "4", "text": "التوريث (Inheritance)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "يُطلق على محاولة إغراق الخادم بحركة مرور زائفة لمنع المستخدمين الشرعيين من الوصول إليه اسم:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "هجوم الرجل في المنتصف (Man-in-the-Middle)", "isCorrect": false },
+      { "id": "2", "text": "هجوم رفض الخدمة الموزعة (DDoS)", "isCorrect": true },
+      { "id": "3", "4", "text": "التصيد الاحتيالي (Phishing)", "isCorrect": false },
+      { "id": "4", "text": "هجوم القوة الغاشمة (Brute-Force)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "الـ 'بت' (Bit) هو اختصار لـ:",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "Binary Information Term", "isCorrect": false },
+      { "id": "2", "text": "Binary Digit", "isCorrect": true },
+      { "id": "3", "4", "text": "Byte Integer", "isCorrect": false },
+      { "id": "4", "text": "Block Index Tag", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو مصطلح يشير إلى البرامج المصممة لنسخ نفسها والانتشار إلى أجهزة كمبيوتر أخرى دون علم المستخدم؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "جدار الحماية (Firewall)", "isCorrect": false },
+      { "id": "2", "text": "دودة الكمبيوتر (Worm)", "isCorrect": true },
+      { "id": "3", "4", "text": "برامج التجسس (Spyware)", "isCorrect": false },
+      { "id": "4", "text": "أدوات الإعلان (Adware)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "أي من نماذج الذكاء الاصطناعي التالية يُستخدم بشكل أساسي لتوليد صور واقعية من أوصاف نصية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الشبكات العصبية الالتفافية (CNN)", "isCorrect": false },
+      { "id": "2", "text": "الشبكات العصبية المتكررة (RNN)", "isCorrect": false },
+      { "id": "3", "4", "text": "الشبكات التوليدية التنافسية (GANs)", "isCorrect": true },
+      { "id": "4", "text": "آلة المتجهات الداعمة (SVM)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "أي وحدة قياس تساوي 1024 ميجابايت؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "كيلوبايت", "isCorrect": false },
+      { "id": "2", "text": "جيجابايت (GB)", "isCorrect": true },
+      { "id": "3", "4", "text": "تيرابايت", "isCorrect": false },
+      { "id": "4", "text": "بيتابايت", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو مصطلح يشير إلى البرامج الثابتة (Firmware) التي تبدأ تشغيل الكمبيوتر عند الضغط على زر الطاقة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "BIOS/UEFI", "isCorrect": true },
+      { "id": "2", "text": "نظام التشغيل (OS)", "isCorrect": false },
+      { "id": "3", "4", "text": "برامج التشغيل (Drivers)", "isCorrect": false },
+      { "id": "4", "text": "جدار الحماية", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو الفرق بين الواقع الافتراضي (VR) والواقع المعزز (AR)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الـ VR يغمر المستخدم بالكامل في بيئة رقمية، بينما الـ AR يضيف عناصر رقمية إلى العالم الحقيقي.", "isCorrect": true },
+      { "id": "2", "text": "الـ AR يحل محل العالم الحقيقي، بينما الـ VR يضيف إليه.", "isCorrect": false },
+      { "id": "3", "4", "text": "الـ VR يستخدم فقط الهواتف الذكية، بينما الـ AR يستخدم النظارات فقط.", "isCorrect": false },
+      { "id": "4", "text": "كلاهما يتطلب بالضرورة قفازات حسية.", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هي الألياف البصرية؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "كابلات تنقل البيانات باستخدام الإشارات الكهربائية عبر النحاس.", "isCorrect": false },
+      { "id": "2", "text": "كابلات تنقل البيانات باستخدام نبضات من الضوء عبر خيوط زجاجية أو بلاستيكية.", "isCorrect": true },
+      { "id": "3", "4", "text": "تقنية اتصال لاسلكي بعيدة المدى.", "isCorrect": false },
+      { "id": "4", "text": "جهاز شبكة يقوم بتخزين عناوين IP.", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هو نوع الحوسبة الذي يتضمن توزيع أعباء العمل عبر عدد كبير من أجهزة الكمبيوتر المترابطة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الحوسبة الشخصية", "isCorrect": false },
+      { "id": "2", "text": "الحوسبة الموزعة (Distributed Computing)", "isCorrect": true },
+      { "id": "3", "4", "text": "الحوسبة الكمومية", "isCorrect": false },
+      { "id": "4", "text": "الحوسبة الطرفية (Edge Computing)", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "ما هو دور الخادم في بنية العميل والخادم (Client-Server Architecture)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "طلب البيانات من العميل", "isCorrect": false },
+      { "id": "2", "text": "توفير الموارد والخدمات للعملاء", "isCorrect": true },
+      { "id": "3", "4", "text": "كتابة الكود البرمجي", "isCorrect": false },
+      { "id": "4", "text": "تحديد عناوين IP", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو جهاز الشبكة الذي يفصل شبكة كمبيوتر محلية عن شبكة إنترنت خارجية ويراقب حركة المرور؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "المحول (Switch)", "isCorrect": false },
+      { "id": "2", "text": "جدار الحماية (Firewall)", "isCorrect": true },
+      { "id": "3", "4", "text": "المودم", "isCorrect": false },
+      { "id": "4", "text": "نقطة الوصول (Access Point)", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "في لغات البرمجة، ما هو مصطلح يشير إلى مجموعة من التعليمات التي تقوم بمهمة محددة ويمكن إعادة استخدامها؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "المتغير (Variable)", "isCorrect": false },
+      { "id": "2", "text": "الدالة (Function)", "isCorrect": true },
+      { "id": "3", "4", "text": "الحلقة (Loop)", "isCorrect": false },
+      { "id": "4", "text": "الشرط (Condition)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هي لغة البرمجة التي يتم \"تفسيرها\" (Interpreted) سطرًا بسطر بدلاً من تجميعها بالكامل؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "C++", "isCorrect": false },
+      { "id": "2", "text": "Java", "isCorrect": false },
+      { "id": "3", "4", "text": "Python", "isCorrect": true },
+      { "id": "4", "text": "Assembly", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "ما هي التقنية التي تسمح لعدة أنظمة تشغيل بالعمل على جهاز كمبيوتر مادي واحد في وقت واحد؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "الأنظمة الموزعة", "isCorrect": false },
+      { "id": "2", "text": "المحاكاة الافتراضية (Virtualization)", "isCorrect": true },
+      { "id": "3", "4", "text": "الإنترنت المتوازي", "isCorrect": false },
+      { "id": "4", "text": "التعلم العميق", "isCorrect": false }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 40
+  },
+  {
+    "text": "الرمز $0$ و $1$ هما أساس أي نظام عددي في الحوسبة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "العشري", "isCorrect": false },
+      { "id": "2", "text": "الثنائي (Binary)", "isCorrect": true },
+      { "id": "3", "4", "text": "الست عشري", "isCorrect": false },
+      { "id": "4", "text": "الثماني", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو الاسم الآخر لمجموعة واسعة النطاق من قواعد البيانات غير العلائقية (Non-Relational Databases)؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "SQL", "isCorrect": false },
+      { "id": "2", "text": "NoSQL", "isCorrect": true },
+      { "id": "3", "4", "text": "RDMS", "isCorrect": false },
+      { "id": "4", "text": "ACID", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  },
+  {
+    "text": "أي تقنية تهدف إلى محاكاة عملية صنع القرار البشري وحل المشكلات؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "علم الروبوتات", "isCorrect": false },
+      { "id": "2", "text": "الذكاء الاصطناعي (AI)", "isCorrect": true },
+      { "id": "3", "4", "text": "الحوسبة الكمومية", "isCorrect": false },
+      { "id": "4", "text": "إنترنت الأشياء (IoT)", "isCorrect": false }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 20
+  },
+  {
+    "text": "ما هو المصطلح الذي يشير إلى القدرة على تكييف الواجهة الرسومية لموقع الويب مع أحجام الشاشات المختلفة؟",
+    "questionTypeId": "four-options",
+    "options": [
+      { "id": "1", "text": "التصميم الثابت", "isCorrect": false },
+      { "id": "2", "text": "التصميم المتجاوب (Responsive Design)", "isCorrect": true },
+      { "id": "3", "4", "text": "التصميم المسطح", "isCorrect": false },
+      { "id": "4", "text": "التصميم الموزع", "isCorrect": false }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 30
+  }
+]

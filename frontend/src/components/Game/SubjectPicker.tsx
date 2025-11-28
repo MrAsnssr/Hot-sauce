@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import { Subject } from '../../types/question.types';
-import { Button } from '../Shared/Button';
 
 interface SubjectPickerProps {
   onSelect: (subject: Subject) => void;

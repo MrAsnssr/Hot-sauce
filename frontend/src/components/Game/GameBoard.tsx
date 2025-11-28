@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameState } from '../../hooks/useGameState';
 import { useSocket } from '../../hooks/useSocket';
-import { GameState, Team, Round } from '../../types/game.types';
+import { GameState, Team } from '../../types/game.types';
 import { Subject, QuestionType, Question } from '../../types/question.types';
 import { Power } from '../../types/power.types';
 import { ScoreBoard } from './ScoreBoard';
@@ -36,7 +36,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
     setSelectedQuestionType,
     currentQuestion,
     setCurrentQuestion,
-    reset,
   } = useGameState();
 
   const socket = useSocket(gameId);
@@ -48,7 +47,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
   const [modifiedQuestion, setModifiedQuestion] = useState<Question | null>(null);
   const [modifiedTimeLimit, setModifiedTimeLimit] = useState<number>(30);
   const [playerName] = useState(() => sessionStorage.getItem('playerName') || 'لاعب');
-  const [gameMode] = useState(() => sessionStorage.getItem('gameMode') || 'local-no-presenter');
 
   useEffect(() => {
     if (socket && gameId) {
@@ -143,7 +141,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameId }) => {
     }
   };
 
-  const handleAnswer = (answerId: string, isCorrect: boolean) => {
+  const handleAnswer = (_answerId: string, isCorrect: boolean) => {
     if (!currentQuestion || !gameState) return;
 
     const questionToUse = modifiedQuestion || currentQuestion;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
 
 interface Player {
   id: string;
@@ -99,7 +100,8 @@ const LocalSetupPage: React.FC = () => {
   const unassignedPlayers = players.filter((p) => !p.teamId);
 
   return (
-    <div className="min-h-screen p-4">
+    <WoodyBackground>
+      <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -268,7 +270,8 @@ const LocalSetupPage: React.FC = () => {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

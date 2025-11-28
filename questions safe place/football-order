@@ -1,0 +1,759 @@
+[
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "إنشاء كأس أوروبا للأندية البطلة", "correctPosition": 1 },
+      { "id": "2", "text": "فوز إنجلترا بكأس العالم الوحيد", "correctPosition": 2 },
+      { "id": "3", "text": "تأسيس الدوري الإنجليزي الممتاز (البريميرليغ)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز اليونان ببطولة أمم أوروبا", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "أول كرة ذهبية لكريستيانو رونالدو", "correctPosition": 1 },
+      { "id": "2", "text": "انتقال نيمار من برشلونة إلى باريس سان جيرمان", "correctPosition": 3 },
+      { "id": "3", "text": "فوز البرتغال بيورو 2016", "correctPosition": 2 },
+      { "id": "4", "text": "انتقال ليونيل ميسي إلى باريس سان جيرمان", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب النهائيات التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "نهائي كأس العالم في فرنسا (1998)", "correctPosition": 1 },
+      { "id": "2", "text": "نهائي معجزة إسطنبول (ليفربول ضد ميلان)", "correctPosition": 3 },
+      { "id": "3", "text": "فوز ريال مدريد باللقب التاسع لدوري الأبطال (باير ليفركوزن)", "correctPosition": 2 },
+      { "id": "4", "text": "فوز إسبانيا بكأس العالم (2010)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "تتويج ميلان ببطولة 'اللا هزيمة' (1994)", "correctPosition": 2 },
+      { "id": "2", "text": "تتويج أياكس بكأس الأبطال (1995)", "correctPosition": 3 },
+      { "id": "3", "text": "تتويج مانشستر يونايتد بالثلاثية (1999)", "correctPosition": 4 },
+      { "id": "4", "text": "قانون التسلل يتم تعديله ليشمل وضعية 'عدم التأثير' (1990)", "correctPosition": 1 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب انتصارات الأندية الإيطالية التالية في دوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز يوفنتوس على أياكس (1996)", "correctPosition": 2 },
+      { "id": "2", "text": "فوز إنتر بالثلاثية (2010)", "correctPosition": 4 },
+      { "id": "3", "text": "فوز إيه سي ميلان على برشلونة (1994)", "correctPosition": 1 },
+      { "id": "4", "text": "فوز إيه سي ميلان على يوفنتوس (2003)", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأهداف القياسية التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "هدف زين الدين زيدان في نهائي الأبطال (2002)", "correctPosition": 3 },
+      { "id": "2", "text": "هدف مارادونا 'يد الله' (1986)", "correctPosition": 1 },
+      { "id": "3", "text": "هدف ليو ميسي الذي حطم رقم جيرد مولر القياسي (2012)", "correctPosition": 4 },
+      { "id": "4", "text": "هدف فان باستن في نهائي اليورو (1988)", "correctPosition": 2 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ اعتزال هؤلاء اللاعبين الدوليين زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "اعتزال زين الدين زيدان (2006)", "correctPosition": 2 },
+      { "id": "2", "text": "اعتزال ديفيد بيكهام (2013)", "correctPosition": 4 },
+      { "id": "3", "text": "اعتزال زين الدين زيدان لأول مرة (2004)", "correctPosition": 1 },
+      { "id": "4", "text": "اعتزال تيري هنري دولياً (2010)", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث المتعلقة بملعب ويمبلي زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "استضافة ويمبلي نهائي كأس العالم (1966)", "correctPosition": 2 },
+      { "id": "2", "text": "افتتاح ملعب ويمبلي الأصلي (1923)", "correctPosition": 1 },
+      { "id": "3", "text": "هدم ملعب ويمبلي الأصلي (2003)", "correctPosition": 3 },
+      { "id": "4", "text": "افتتاح ملعب ويمبلي الجديد (2007)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز نادي بايرن ميونخ بأول لقب لدوري الأبطال", "correctPosition": 2 },
+      { "id": "2", "text": "فوز سلتيك بأول لقب بريطاني (1967)", "correctPosition": 1 },
+      { "id": "3", "text": "فوز هامبورغ بكأس أوروبا (1983)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز بوروسيا دورتموند بدوري الأبطال (1997)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الدوريات الأوروبية التالية زمنياً حسب التأسيس:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "الدوري الإنجليزي (1888)", "correctPosition": 1 },
+      { "id": "2", "text": "الدوري الإيطالي (بشكله الحالي 1929)", "correctPosition": 3 },
+      { "id": "3", "text": "الدوري الإسباني (1929)", "correctPosition": 4 },
+      { "id": "4", "text": "الدوري الألماني (بشكله الحالي 1963)", "correctPosition": 5 },
+      { "id": "5", "text": "الدوري الهولندي (1898)", "correctPosition": 2 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الألقاب التالية لمنتخب إسبانيا زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "يورو 2008", "correctPosition": 2 },
+      { "id": "2", "text": "يورو 1964", "correctPosition": 1 },
+      { "id": "3", "text": "كأس العالم 2010", "correctPosition": 3 },
+      { "id": "4", "text": "يورو 2012", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ انتقال هؤلاء اللاعبين إلى ريال مدريد زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "انتقال زين الدين زيدان (2001)", "correctPosition": 2 },
+      { "id": "2", "text": "انتقال لويس فيغو (2000)", "correctPosition": 1 },
+      { "id": "3", "text": "انتقال ديفيد بيكهام (2003)", "correctPosition": 3 },
+      { "id": "4", "text": "انتقال كريستيانو رونالدو (2009)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز نوتنغهام فورست بكأس أوروبا", "correctPosition": 2 },
+      { "id": "2", "text": "فوز ليفربول بأول لقب أوروبي (1977)", "correctPosition": 1 },
+      { "id": "3", "text": "فوز أستون فيلا بكأس أوروبا (1982)", "correctPosition": 3 },
+      { "id": "4", "text": "كارثة هيسيل (1985)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب اللاعبين حسب تواريخ فوزهم بالكرة الذهبية (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "مايكل أوين (2001)", "correctPosition": 4 },
+      { "id": "2", "text": "ماركو فان باستن (1988)", "correctPosition": 2 },
+      { "id": "3", "text": "جورج بيست (1968)", "correctPosition": 1 },
+      { "id": "4", "text": "زين الدين زيدان (1998)", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية في تاريخ يوفنتوس زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز يوفنتوس بدوري الأبطال (1996)", "correctPosition": 2 },
+      { "id": "2", "text": "فضيحة الكالتشوبولي (2006)", "correctPosition": 3 },
+      { "id": "3", "text": "توقيع يوفنتوس مع كريستيانو رونالدو (2018)", "correctPosition": 4 },
+      { "id": "4", "text": "فوز يوفنتوس بأول لقب أوروبي (1985)", "correctPosition": 1 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب المباريات القياسية التالية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز مانشستر يونايتد 9-0 على إبسويتش (1995)", "correctPosition": 1 },
+      { "id": "2", "text": "فوز آرسنال على توتنهام 5-0 (2000s)", "correctPosition": 3 },
+      { "id": "3", "text": "فوز بايرن ميونخ 7-1 على روما (2014)", "correctPosition": 4 },
+      { "id": "4", "text": "فوز برشلونة 5-0 على ريال مدريد (2010)", "correctPosition": 2 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب السنوات التي فازت فيها ألمانيا بكأس العالم زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "1990", "correctPosition": 3 },
+      { "id": "2", "text": "1954", "correctPosition": 1 },
+      { "id": "3", "text": "1974", "correctPosition": 2 },
+      { "id": "4", "text": "2014", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب ألقاب كأس الاتحاد الأوروبي/الدوري الأوروبي التالية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز ليفربول بكأس الاتحاد (2001)", "correctPosition": 2 },
+      { "id": "2", "text": "فوز يوفنتوس بكأس الاتحاد (1977)", "correctPosition": 1 },
+      { "id": "3", "text": "فوز مانشستر يونايتد بالدوري الأوروبي (2017)", "correctPosition": 4 },
+      { "id": "4", "text": "فوز فالنسيا بكأس الاتحاد (2004)", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "انتقال ديفيد بيكهام إلى باريس سان جيرمان (2013)", "correctPosition": 4 },
+      { "id": "2", "text": "انتقال ريو فيرديناند إلى مانشستر يونايتد (2002)", "correctPosition": 1 },
+      { "id": "3", "text": "انتقال كريستيانو رونالدو إلى ريال مدريد (2009)", "correctPosition": 3 },
+      { "id": "4", "text": "انتقال فرناندو توريس إلى ليفربول (2007)", "correctPosition": 2 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب ألقاب برشلونة التالية في دوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز برشلونة بكأس الأبطال (1992)", "correctPosition": 1 },
+      { "id": "2", "text": "فوز برشلونة على آرسنال (2006)", "correctPosition": 2 },
+      { "id": "3", "text": "فوز برشلونة على مانشستر يونايتد (2009)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز برشلونة على يوفنتوس (2015)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الدول التالية حسب تواريخ استضافتها لكأس العالم (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "إيطاليا (1934)", "correctPosition": 1 },
+      { "id": "2", "text": "ألمانيا الغربية (1974)", "correctPosition": 3 },
+      { "id": "3", "text": "إنجلترا (1966)", "correctPosition": 2 },
+      { "id": "4", "text": "فرنسا (1998)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز روما بدوري المؤتمرات الأوروبي (2022)", "correctPosition": 5 },
+      { "id": "2", "text": "إطلاق دوري الأمم الأوروبية (2018)", "correctPosition": 4 },
+      { "id": "3", "text": "فوز أتلتيكو مدريد بلقب الدوري الأوروبي على فولهام (2010)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز زين الدين زيدان بكأس القارات (2001)", "correctPosition": 2 },
+      { "id": "5", "text": "تتويج فرنسا بكأس العالم (1998)", "correctPosition": 1 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب اللاعبين حسب تواريخ أول مشاركة لهم في دوري أبطال أوروبا (للأندية التالية):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فرانشيسكو توتي (1990s)", "correctPosition": 1 },
+      { "id": "2", "text": "كريستيانو رونالدو (2003)", "correctPosition": 2 },
+      { "id": "3", "text": "ليونيل ميسي (2004)", "correctPosition": 3 },
+      { "id": "4", "text": "كيليان مبابي (2016)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز مانشستر يونايتد بدوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "1999 (الثلاثية)", "correctPosition": 2 },
+      { "id": "2", "text": "2008 (موسكو)", "correctPosition": 3 },
+      { "id": "3", "text": "1968 (الأولى)", "correctPosition": 1 },
+      { "id": "4", "text": "2011 (الخسارة النهائية)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الألقاب التالية لمنتخب إيطاليا زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "كأس العالم 1982", "correctPosition": 2 },
+      { "id": "2", "text": "كأس العالم 1934", "correctPosition": 1 },
+      { "id": "3", "text": "كأس العالم 2006", "correctPosition": 3 },
+      { "id": "4", "text": "يورو 2020", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأندية التي فاز بها كارلو أنشيلوتي بدوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "ريال مدريد (الأولى)", "correctPosition": 3 },
+      { "id": "2", "text": "ميلان (الأولى)", "correctPosition": 1 },
+      { "id": "3", "text": "ميلان (الثانية)", "correctPosition": 2 },
+      { "id": "4", "text": "ريال مدريد (الثانية)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ إطلاق هذه المسابقات الأوروبية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "دوري أبطال أوروبا (1955)", "correctPosition": 1 },
+      { "id": "2", "text": "كأس الكؤوس الأوروبية (1960)", "correctPosition": 2 },
+      { "id": "3", "text": "كأس الاتحاد الأوروبي (1971)", "correctPosition": 3 },
+      { "id": "4", "text": "دوري المؤتمرات الأوروبي (2021)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ افتتاح هذه الملاعب الكبرى زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "سانتياغو برنابيو (1947)", "correctPosition": 2 },
+      { "id": "2", "text": "أولد ترافورد (1910)", "correctPosition": 1 },
+      { "id": "3", "text": "كامب نو (1957)", "correctPosition": 3 },
+      { "id": "4", "text": "أليانز أرينا (2005)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب ألقاب ليفربول في دوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز ليفربول بكأس الأبطال (1981)", "correctPosition": 2 },
+      { "id": "2", "text": "فوز ليفربول بكأس الأبطال (1977)", "correctPosition": 1 },
+      { "id": "3", "text": "نهائي إسطنبول (2005)", "correctPosition": 3 },
+      { "id": "4", "text": "نهائي مدريد (2019)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب السنوات التي فازت فيها فرنسا بيورو زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "يورو 2000", "correctPosition": 2 },
+      { "id": "2", "text": "يورو 1984", "correctPosition": 1 },
+      { "id": "3", "text": "كأس العالم 1998", "correctPosition": 4 },
+      { "id": "4", "text": "كأس العالم 2018", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب السنوات التي فاز فيها جوزيه مورينيو بدوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "بورتو (2004)", "correctPosition": 1 },
+      { "id": "2", "text": "إنتر ميلان (2010)", "correctPosition": 2 },
+      { "id": "3", "text": "فوزه بالدوري الأوروبي مع مانشستر يونايتد (2017)", "correctPosition": 4 },
+      { "id": "4", "text": "فوزه بدوري المؤتمرات مع روما (2022)", "correctPosition": 3 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأندية التي لعب لها زلاتان إبراهيموفيتش في الدوريات الخمسة الكبرى زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "يوفنتوس", "correctPosition": 1 },
+      { "id": "2", "text": "برشلونة", "correctPosition": 3 },
+      { "id": "3", "text": "إنتر ميلان", "correctPosition": 2 },
+      { "id": "4", "text": "مانشستر يونايتد", "correctPosition": 5 },
+      { "id": "5", "text": "باريس سان جيرمان", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ اعتزال هؤلاء المدربين لنهاية مسيرتهم التدريبية زمنياً (تقريبياً):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "اعتزال السير أليكس فيرغسون", "correctPosition": 3 },
+      { "id": "2", "text": "اعتزال أرسين فينغر", "correctPosition": 4 },
+      { "id": "3", "text": "اعتزال جوزيه مورينيو لفترة وجيزة", "correctPosition": 2 },
+      { "id": "4", "text": "اعتزال بوب بيزلي", "correctPosition": 1 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تأسيس هذه الأندية الإنجليزية الكبرى زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "ليفربول (1892)", "correctPosition": 2 },
+      { "id": "2", "text": "مانشستر يونايتد (1878/1902)", "correctPosition": 1 },
+      { "id": "3", "text": "تشيلسي (1905)", "correctPosition": 3 },
+      { "id": "4", "text": "مانشستر سيتي (1880/1894)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الألقاب التالية لمنتخب هولندا زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "وصيف كأس العالم 1974", "correctPosition": 1 },
+      { "id": "2", "text": "يورو 1988 (اللقب الوحيد)", "correctPosition": 2 },
+      { "id": "3", "text": "وصيف كأس العالم 2010", "correctPosition": 4 },
+      { "id": "4", "text": "وصيف كأس العالم 1978", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ انتقال ليونيل ميسي زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "أول ظهور مع الفريق الأول لبرشلونة (2004)", "correctPosition": 1 },
+      { "id": "2", "text": "فوزه بالكرة الذهبية الأولى (2009)", "correctPosition": 2 },
+      { "id": "3", "text": "الانتقال إلى باريس سان جيرمان (2021)", "correctPosition": 3 },
+      { "id": "4", "text": "فوزه بكأس العالم (2022)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب السنوات التي فازت فيها البرتغال بألقاب دولية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "يورو 2016", "correctPosition": 1 },
+      { "id": "2", "text": "دوري الأمم الأوروبية 2019", "correctPosition": 2 },
+      { "id": "3", "text": "وصيف يورو 2004", "correctPosition": 4 },
+      { "id": "4", "text": "برونزية كأس العالم 1966", "correctPosition": 3 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ إطلاق هذه الجوائز/المسابقات زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "جائزة أفضل لاعب في أوروبا (1956)", "correctPosition": 1 },
+      { "id": "2", "text": "إطلاق دوري أبطال أوروبا بشكله الجديد (1992)", "correctPosition": 2 },
+      { "id": "3", "text": "جائزة بوشكاش لأفضل هدف (2009)", "correctPosition": 3 },
+      { "id": "4", "text": "جائزة 'ذا بيست' من الفيفا (2016)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "أول مرة يحقق فيها بايرن ميونخ الثلاثية (2013)", "correctPosition": 2 },
+      { "id": "2", "text": "أول مرة يحقق فيها برشلونة الثلاثية (2009)", "correctPosition": 1 },
+      { "id": "3", "text": "أول مرة يحقق فيها إنتر ميلان الثلاثية (2010)", "correctPosition": 4 },
+      { "id": "4", "text": "أول مرة يحقق فيها مانشستر سيتي الثلاثية (2023)", "correctPosition": 3 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ افتتاح هذه الملاعب الإيطالية الكبرى زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "سان سيرو (1926)", "correctPosition": 1 },
+      { "id": "2", "text": "استاد الأولمبيكو (1937)", "correctPosition": 2 },
+      { "id": "3", "text": "استاد دييغو أرماندو مارادونا (1959)", "correctPosition": 3 },
+      { "id": "4", "text": "يوفنتوس ستاديوم (2011)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب السنوات التي فاز فيها بيب غوارديولا بدوري الأبطال زمنياً (كـ مدرب):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "برشلونة (2009)", "correctPosition": 1 },
+      { "id": "2", "text": "برشلونة (2011)", "correctPosition": 2 },
+      { "id": "3", "text": "مانشستر سيتي (2023)", "correctPosition": 3 },
+      { "id": "4", "text": "فوزه باللقب الأوروبي مع مانشستر سيتي (2023)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ تأسيس الأندية الإسبانية التالية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "برشلونة (1899)", "correctPosition": 1 },
+      { "id": "2", "text": "أتلتيكو مدريد (1903)", "correctPosition": 3 },
+      { "id": "3", "text": "ريال مدريد (1902)", "correctPosition": 2 },
+      { "id": "4", "text": "فالنسيا (1919)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "إلغاء كأس الكؤوس الأوروبية", "correctPosition": 3 },
+      { "id": "2", "text": "حادثة هيسيل", "correctPosition": 1 },
+      { "id": "3", "text": "تعديل اسم الكأس الأوروبية إلى دوري الأبطال", "correctPosition": 2 },
+      { "id": "4", "text": "إطلاق دوري المؤتمرات", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز تشيلسي بدوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوزه الأول (2012)", "correctPosition": 1 },
+      { "id": "2", "text": "فوزه بالدوري الأوروبي (2013)", "correctPosition": 2 },
+      { "id": "3", "text": "فوزه الثاني (2021)", "correctPosition": 3 },
+      { "id": "4", "text": "فوزه بكأس العالم للأندية (2022)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأهداف القياسية التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "أسرع هدف في تاريخ كأس العالم (هاكان شوكور)", "correctPosition": 3 },
+      { "id": "2", "text": "هدف فان باستن في يورو 1988", "correctPosition": 1 },
+      { "id": "3", "text": "أسرع هدف في تاريخ دوري الأبطال (روي ماكاي)", "correctPosition": 4 },
+      { "id": "4", "text": "هدف زين الدين زيدان في نهائي الأبطال 2002", "correctPosition": 2 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأندية التي لعب لها دافيد فيا في الدوري الإسباني زمنياً (أول مشاركة):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فالنسيا", "correctPosition": 2 },
+      { "id": "2", "text": "سبورتينغ خيخون (نادي ناشئيه)", "correctPosition": 1 },
+      { "id": "3", "text": "برشلونة", "correctPosition": 3 },
+      { "id": "4", "text": "أتلتيكو مدريد", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ إطلاق هذه البطولات الأوروبية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "دوري أبطال أوروبا", "correctPosition": 1 },
+      { "id": "2", "text": "كأس المعارض الأوروبية", "correctPosition": 2 },
+      { "id": "3", "text": "كأس السوبر الأوروبي", "correctPosition": 3 },
+      { "id": "4", "text": "كأس القارات", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز مانشستر سيتي ببعض ألقابه زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز مانشستر سيتي بلقب الدوري الأول في عهد الملاك الجدد (2012)", "correctPosition": 1 },
+      { "id": "2", "text": "تحقيق 100 نقطة في الدوري (2018)", "correctPosition": 2 },
+      { "id": "3", "text": "خسارة نهائي دوري الأبطال أمام تشيلسي (2021)", "correctPosition": 3 },
+      { "id": "4", "text": "الفوز بدوري أبطال أوروبا وتحقيق الثلاثية (2023)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ انتقال لويس سواريز زمنياً (في الأندية الأوروبية الكبرى):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "أياكس أمستردام", "correctPosition": 1 },
+      { "id": "2", "text": "ليفربول", "correctPosition": 2 },
+      { "id": "3", "text": "برشلونة", "correctPosition": 3 },
+      { "id": "4", "text": "أتلتيكو مدريد", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز هولندا ببطولات الناشئين والشباب زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "بطولة أوروبا تحت 21 سنة (2007)", "correctPosition": 2 },
+      { "id": "2", "text": "بطولة أوروبا تحت 21 سنة (2006)", "correctPosition": 1 },
+      { "id": "3", "text": "وصافة كأس العالم 2010", "correctPosition": 4 },
+      { "id": "4", "text": "وصافة دوري الأمم الأوروبية 2019", "correctPosition": 3 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب سنوات فوز إيه سي ميلان بدوري الأبطال زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز ميلان بـ 'اللا هزيمة' (1994)", "correctPosition": 2 },
+      { "id": "2", "text": "فوز ميلان بـ 'سلالة خوليت وفان باستن' (1989)", "correctPosition": 1 },
+      { "id": "3", "text": "نهائي إسطنبول (الخسارة 2005)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز ميلان على ليفربول (2007)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ إطلاق هذه الأنظمة التكنولوجية زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "تطبيق تقنية خط المرمى في البريميرليغ (2013)", "correctPosition": 2 },
+      { "id": "2", "text": "إطلاق نظام الفار (VAR) بشكل واسع (2018)", "correctPosition": 4 },
+      { "id": "3", "text": "تطبيق تقنية خط المرمى في كأس العالم (2014)", "correctPosition": 3 },
+      { "id": "4", "text": "إطلاق نظام الهوكي لأول مرة (2007)", "correctPosition": 1 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الأحداث التالية زمنياً (من الأقدم إلى الأحدث):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز ليستر سيتي بالدوري الإنجليزي (2016)", "correctPosition": 4 },
+      { "id": "2", "text": "فوز بلاكبيرن روفرز بالدوري الإنجليزي (1995)", "correctPosition": 1 },
+      { "id": "3", "text": "فوز تشيلسي بالدوري الإنجليزي (2005)", "correctPosition": 2 },
+      { "id": "4", "text": "فوز مانشستر سيتي بلقبه الأول في البريميرليغ (2012)", "correctPosition": 3 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ تأسيس هذه الأندية الألمانية الكبرى زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "بايرن ميونخ (1900)", "correctPosition": 2 },
+      { "id": "2", "text": "هامبورغ (1887)", "correctPosition": 1 },
+      { "id": "3", "text": "شالكه 04 (1904)", "correctPosition": 3 },
+      { "id": "4", "text": "بوروسيا دورتموند (1909)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب الألقاب التالية لمنتخب ألمانيا في يورو زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز ألمانيا باليورو (1980)", "correctPosition": 2 },
+      { "id": "2", "text": "فوز ألمانيا باليورو (1972)", "correctPosition": 1 },
+      { "id": "3", "text": "فوز ألمانيا باليورو (1996)", "correctPosition": 3 },
+      { "id": "4", "text": "وصافة يورو (2008)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز آرسنال بهذه الألقاب زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوزه بالدوري في عهد جورج غراهام (1989)", "correctPosition": 1 },
+      { "id": "2", "text": "فوزه بلقب الدوري في موسم 'اللا هزيمة' (2004)", "correctPosition": 3 },
+      { "id": "3", "text": "فوزه بالدوري والكأس في عام واحد (2002)", "correctPosition": 2 },
+      { "id": "4", "text": "فوزه بكأس الاتحاد الإنجليزي على تشيلسي (2017)", "correctPosition": 4 }
+    ],
+    "difficulty": "medium",
+    "points": 15,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ انتقال هؤلاء اللاعبين الإيطاليين زمنياً:",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "انتقال روبرتو باجيو إلى يوفنتوس (1990)", "correctPosition": 1 },
+      { "id": "2", "text": "انتقال باجيو من يوفنتوس إلى ميلان (1995)", "correctPosition": 2 },
+      { "id": "3", "text": "انتقال كريستيان فييري إلى إنتر ميلان (1999)", "correctPosition": 3 },
+      { "id": "4", "text": "انتقال جيانلويجي بوفون إلى يوفنتوس (2001)", "correctPosition": 4 }
+    ],
+    "difficulty": "hard",
+    "points": 20,
+    "timeLimit": 45
+  },
+  {
+    "text": "رتب تواريخ فوز ريال مدريد بدوري الأبطال زمنياً (الألفية الجديدة):",
+    "questionTypeId": "order-challenge",
+    "orderItems": [
+      { "id": "1", "text": "فوز اللقب التاسع (2002)", "correctPosition": 1 },
+      { "id": "2", "text": "فوز اللقب العاشر (2014)", "correctPosition": 2 },
+      { "id": "3", "text": "فوز اللقب الحادي عشر (2016)", "correctPosition": 3 },
+      { "id": "4", "text": "فوز اللقب الرابع عشر (2022)", "correctPosition": 4 }
+    ],
+    "difficulty": "easy",
+    "points": 10,
+    "timeLimit": 45
+  }
+]

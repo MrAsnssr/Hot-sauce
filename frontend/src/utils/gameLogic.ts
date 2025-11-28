@@ -1,6 +1,5 @@
-import { Question, QuestionType } from '../types/question.types';
 import { Power, PowerEffect } from '../types/power.types';
-import { PowerRegistry } from '../types/power.registry';
+import { Question } from '../types/question.types';
 
 export const applyPowerEffect = (
   question: Question,

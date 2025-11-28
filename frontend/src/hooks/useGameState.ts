@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, Team, Round } from '../types/game.types';
+import { GameState, Team, Round } from '../types/game.types'; // Round is used in addRound
 import { Question, Subject, QuestionType } from '../types/question.types';
 
 interface GameStore {

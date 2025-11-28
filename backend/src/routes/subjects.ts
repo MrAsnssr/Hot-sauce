@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Subject from '../models/Subject.js';
+import Question from '../models/Question.js';
 
 const router = express.Router();
 
@@ -61,15 +63,33 @@ router.put('/:id', async (req: Request, res: Response) => {
 // Delete subject
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const subject = await Subject.findByIdAndDelete(req.params.id);
+    const subjectId = req.params.id;
     
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(subjectId)) {
+      return res.status(400).json({ error: 'Invalid subject ID format' });
+    }
+    
+    // Check if subject exists
+    const subject = await Subject.findById(subjectId);
     if (!subject) {
       return res.status(404).json({ error: 'Subject not found' });
     }
     
-    res.json({ message: 'Subject deleted successfully' });
+    // Delete all questions associated with this subject
+    const questionsDeleted = await Question.deleteMany({ subjectId: new mongoose.Types.ObjectId(subjectId) });
+    console.log(`Deleted ${questionsDeleted.deletedCount} questions for subject ${subjectId}`);
+    
+    // Delete the subject
+    await Subject.findByIdAndDelete(subjectId);
+    
+    res.json({ 
+      message: 'Subject deleted successfully',
+      questionsDeleted: questionsDeleted.deletedCount 
+    });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Error deleting subject:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete subject' });
   }
 });
 

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Shared/Button';
 import { Timer } from '../components/Shared/Timer';
+import { WoodyBackground } from '../components/Shared/WoodyBackground';
 import { Subject, QuestionType, Question } from '../types/question.types';
 import { Power } from '../types/power.types';
 import { PowerRegistry } from '../types/power.registry';
+import { HARDCODED_QUESTION_TYPES } from '../constants/questionTypes';
 import api from '../utils/api';
 
 interface Player {
@@ -74,15 +76,14 @@ const LocalGamePage: React.FC = () => {
   }, [navigate]);
 
   const fetchGameData = async () => {
+    // Question types are hardcoded
+    setQuestionTypes(HARDCODED_QUESTION_TYPES);
+    
     try {
-      const [subjectsRes, typesRes] = await Promise.all([
-        api.get('/subjects'),
-        api.get('/question-types'),
-      ]);
+      const subjectsRes = await api.get('/subjects');
       setSubjects(subjectsRes.data);
-      setQuestionTypes(typesRes.data);
     } catch (error) {
-      console.error('Error fetching game data:', error);
+      console.error('Error fetching subjects:', error);
       // Use mock data if API fails
       setSubjects([
         { id: '1', name: 'History', nameAr: 'التاريخ', createdAt: new Date(), updatedAt: new Date() },
@@ -90,16 +91,11 @@ const LocalGamePage: React.FC = () => {
         { id: '3', name: 'Sports', nameAr: 'الرياضة', createdAt: new Date(), updatedAt: new Date() },
         { id: '4', name: 'Geography', nameAr: 'الجغرافيا', createdAt: new Date(), updatedAt: new Date() },
       ]);
-      setQuestionTypes([
-        { id: '1', name: 'Multiple Choice', nameAr: 'اختيار من متعدد', description: 'اختر الإجابة الصحيحة', requiresOptions: true, requiresTextAnswer: false, supportsImage: false, supportsAudio: false, defaultTimeLimit: 30 },
-        { id: '2', name: 'True/False', nameAr: 'صح أو خطأ', description: 'حدد صحة العبارة', requiresOptions: true, requiresTextAnswer: false, supportsImage: false, supportsAudio: false, defaultTimeLimit: 20 },
-      ]);
     }
   };
 
   const currentTeam = teams[currentTeamIndex];
   const opposingTeam = teams[(currentTeamIndex + 1) % teams.length];
-  const isSubjectTeam = currentTeamIndex === 0; // Team A picks subject, Team B picks type
 
   const handleSubjectSelect = (subject: Subject) => {
     setSelectedSubject(subject);
@@ -130,31 +126,38 @@ const LocalGamePage: React.FC = () => {
         subjectId: selectedSubject?.id,
         questionTypeId: selectedType?.id,
       });
-      setCurrentQuestion(response.data);
-    } catch (error) {
-      // Use mock question if API fails
-      setCurrentQuestion({
-        id: `q-${Date.now()}`,
-        text: 'ما هي عاصمة المملكة العربية السعودية؟',
-        subjectId: selectedSubject?.id || '1',
-        questionTypeId: selectedType?.id || '1',
-        options: [
-          { id: '1', text: 'الرياض', isCorrect: true },
-          { id: '2', text: 'جدة', isCorrect: false },
-          { id: '3', text: 'مكة', isCorrect: false },
-          { id: '4', text: 'الدمام', isCorrect: false },
-        ],
-        difficulty: 'medium',
-        points: 10,
-        timeLimit: 30,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      
+      // Ensure the question has the correct structure
+      const question = response.data;
+      let formattedQuestion = question;
+      if (!question.id && question._id) {
+        // Convert _id to id for consistency
+        formattedQuestion = { ...question, id: question._id.toString() };
+      }
+      
+      setCurrentQuestion(formattedQuestion);
+      setPhase('show_question');
+      setTimeUp(false);
+      setTeamAAnswer(null);
+      setTeamBAnswer(null);
+    } catch (error: any) {
+      // Show error message if no questions found
+      if (error.response?.status === 404) {
+        alert('لا توجد أسئلة متاحة للموضوع ونوع السؤال المحدد. يرجى إنشاء أسئلة من لوحة الإدارة أولاً.');
+        // Go back to subject selection
+        setPhase('team_select_subject');
+        setSelectedSubject(null);
+        setSelectedType(null);
+        return;
+      }
+      
+      // For other errors, show generic message
+      console.error('Error loading question:', error);
+      alert('حدث خطأ في تحميل السؤال. يرجى المحاولة مرة أخرى.');
+      setPhase('team_select_subject');
+      setSelectedSubject(null);
+      setSelectedType(null);
     }
-    setPhase('show_question');
-    setTimeUp(false);
-    setTeamAAnswer(null);
-    setTeamBAnswer(null);
   };
 
   const handleTeamAAnswer = (answerId: string) => {
@@ -265,7 +268,8 @@ const LocalGamePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen p-4">
+    <WoodyBackground>
+      <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header with scores */}
         <div className="flex justify-between items-center mb-6">
@@ -647,7 +651,8 @@ const LocalGamePage: React.FC = () => {
           </label>
         </div>
       </div>
-    </div>
+      </div>
+    </WoodyBackground>
   );
 };
 

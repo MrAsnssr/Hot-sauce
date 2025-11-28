@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import api from '../../utils/api';
+import React from 'react';
 import { QuestionType } from '../../types/question.types';
+import { HARDCODED_QUESTION_TYPES } from '../../constants/questionTypes';
 
 interface QuestionTypePickerProps {
   onSelect: (type: QuestionType) => void;
@@ -11,27 +11,7 @@ export const QuestionTypePicker: React.FC<QuestionTypePickerProps> = ({
   onSelect,
   selectedType,
 }) => {
-  const [types, setTypes] = useState<QuestionType[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchTypes();
-  }, []);
-
-  const fetchTypes = async () => {
-    try {
-      const response = await api.get('/question-types');
-      setTypes(response.data);
-    } catch (error) {
-      console.error('Error fetching question types:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <div className="text-white">جاري التحميل...</div>;
-  }
+  const types = HARDCODED_QUESTION_TYPES;
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
