@@ -109,78 +109,104 @@ const OnlineWaitingPage: React.FC = () => {
       try {
         console.log('🔵 [PLAYER] Received game config:', config);
         console.log('🔵 [PLAYER] Config players:', config.players);
-        console.log('🔵 [PLAYER] Current players before update:', joinedPlayers);
+        
+        // Update non-player state first (these are safe)
         setSelectedSubjects(config.subjects || []);
         setSelectedTypes(config.questionTypes || []);
         setExtraSauceEnabled(config.extraSauceEnabled ?? true);
+        
         // CRITICAL: Only update players if config has players AND it's not empty
         // Never overwrite with empty array - always merge or keep existing
         setJoinedPlayers((prev) => {
-          // Update ref
-          playersRef.current = prev;
-          
-          if (config.players && Array.isArray(config.players)) {
-            if (config.players.length > 0) {
-              console.log('🔵 [PLAYER] Config has players, merging:', config.players);
-              hasHadPlayersRef.current = true; // Mark that we've had players
-              // Merge: combine existing and new players, avoiding duplicates
-              const merged = [...prev];
-              config.players.forEach((newPlayer: JoinedPlayer) => {
-                const exists = merged.some(p => 
-                  (p.socketId && newPlayer.socketId && p.socketId === newPlayer.socketId) || 
-                  p.name === newPlayer.name
-                );
-                if (!exists) {
-                  merged.push(newPlayer);
-                  console.log('🔵 [PLAYER] Added new player to merged list:', newPlayer.name);
+          try {
+            // Update ref
+            playersRef.current = prev;
+            
+            if (config.players && Array.isArray(config.players)) {
+              if (config.players.length > 0) {
+                console.log('🔵 [PLAYER] Config has players, merging:', config.players);
+                hasHadPlayersRef.current = true; // Mark that we've had players
+                // Merge: combine existing and new players, avoiding duplicates
+                const merged = [...prev];
+                config.players.forEach((newPlayer: JoinedPlayer) => {
+                  if (!newPlayer || typeof newPlayer !== 'object') {
+                    console.warn('🔵 [PLAYER] Invalid player data:', newPlayer);
+                    return;
+                  }
+                  const exists = merged.some(p => 
+                    (p.socketId && newPlayer.socketId && p.socketId === newPlayer.socketId) || 
+                    (p.name && newPlayer.name && p.name === newPlayer.name)
+                  );
+                  if (!exists) {
+                    merged.push(newPlayer);
+                    console.log('🔵 [PLAYER] Added new player to merged list:', newPlayer.name);
+                  }
+                });
+                playersRef.current = merged; // Update ref
+                console.log('🔵 [PLAYER] Final merged players:', merged);
+                return merged;
+              } else {
+                // Config has empty players array - NEVER clear if we've had players
+                if (hasHadPlayersRef.current && prev.length > 0) {
+                  console.log('🔵 [PLAYER] Config has EMPTY array but we have players - PROTECTING list:', prev);
+                  return prev; // Protect existing players
                 }
-              });
-              playersRef.current = merged; // Update ref
-              console.log('🔵 [PLAYER] Final merged players:', merged);
-              return merged;
-            } else {
-              // Config has empty players array - NEVER clear if we've had players
-              if (hasHadPlayersRef.current && prev.length > 0) {
-                console.log('🔵 [PLAYER] Config has EMPTY array but we have players - PROTECTING list:', prev);
-                return prev; // Protect existing players
+                console.log('🔵 [PLAYER] Config empty, no previous players, keeping empty');
+                return prev;
               }
-              console.log('🔵 [PLAYER] Config empty, no previous players, keeping empty');
+            } else {
+              // No players in config - keep existing
+              console.log('🔵 [PLAYER] No players in config, keeping current:', prev);
               return prev;
             }
-          } else {
-            // No players in config - keep existing
-            console.log('🔵 [PLAYER] No players in config, keeping current:', prev);
-            return prev;
+          } catch (err) {
+            console.error('❌ [PLAYER] Error in setJoinedPlayers:', err);
+            return prev; // Return previous state on error
           }
         });
         setConfigLoaded(true);
       } catch (error) {
         console.error('❌ [PLAYER] Error updating game config:', error);
+        // Don't crash - try to keep the page functional
       }
     });
     
     // Also listen for player-joined events (in case host sends them separately)
     newSocket.on('player-joined', (data: { socketId: string; playerName: string; isHost?: boolean }) => {
-      console.log('🔵 [PLAYER] Player joined event received on waiting page:', data);
-      if (!data.isHost) {
-        setJoinedPlayers((prev) => {
-          // Check if player already exists
-          if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
-            console.log('🔵 [PLAYER] Player already in list, skipping');
-            return prev;
-          }
-          const newPlayer = {
-            id: `player-${Date.now()}-${Math.random()}`,
-            name: data.playerName,
-            teamId: null,
-            socketId: data.socketId,
-          };
-          console.log('🔵 [PLAYER] Adding player from player-joined event:', newPlayer);
-          hasHadPlayersRef.current = true; // Mark that we've had players
-          const updated = [...prev, newPlayer];
-          playersRef.current = updated; // Update ref
-          return updated;
-        });
+      try {
+        console.log('🔵 [PLAYER] Player joined event received on waiting page:', data);
+        // Don't process our own join event (we're already in the list via config)
+        if (data.socketId === newSocket.id) {
+          console.log('🔵 [PLAYER] Ignoring own join event');
+          return;
+        }
+        if (!data.isHost) {
+          setJoinedPlayers((prev) => {
+            try {
+              // Check if player already exists
+              if (prev.some(p => p.socketId === data.socketId || p.name === data.playerName)) {
+                console.log('🔵 [PLAYER] Player already in list, skipping');
+                return prev;
+              }
+              const newPlayer = {
+                id: `player-${Date.now()}-${Math.random()}`,
+                name: data.playerName,
+                teamId: null,
+                socketId: data.socketId,
+              };
+              console.log('🔵 [PLAYER] Adding player from player-joined event:', newPlayer);
+              hasHadPlayersRef.current = true; // Mark that we've had players
+              const updated = [...prev, newPlayer];
+              playersRef.current = updated; // Update ref
+              return updated;
+            } catch (err) {
+              console.error('❌ [PLAYER] Error in player-joined setState:', err);
+              return prev; // Return previous state on error
+            }
+          });
+        }
+      } catch (error) {
+        console.error('❌ [PLAYER] Error handling player-joined event:', error);
       }
     });
 
@@ -198,6 +224,22 @@ const OnlineWaitingPage: React.FC = () => {
       newSocket.disconnect();
     };
   }, [roomCode, playerName, navigate]); // Keep dependencies minimal to avoid re-connections
+
+  // Error boundary - if anything crashes, show error instead of blank screen
+  if (!roomCode) {
+    return (
+      <WoodyBackground>
+        <div className="min-h-screen p-4 flex items-center justify-center">
+          <div className="text-white text-center">
+            <p>خطأ: لا يوجد رمز غرفة</p>
+            <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 bg-blue-600 rounded">
+              العودة للصفحة الرئيسية
+            </button>
+          </div>
+        </div>
+      </WoodyBackground>
+    );
+  }
 
   return (
     <WoodyBackground>
@@ -300,7 +342,11 @@ const OnlineWaitingPage: React.FC = () => {
                 اللاعبون ({joinedPlayers.length})
               </h3>
 
-              {joinedPlayers.length === 0 ? (
+              {!configLoaded ? (
+                <div className="text-center py-8 text-white/50">
+                  جاري تحميل قائمة اللاعبين...
+                </div>
+              ) : joinedPlayers.length === 0 ? (
                 <div className="text-center py-8 text-white/50">
                   في انتظار انضمام اللاعبين...
                 </div>
