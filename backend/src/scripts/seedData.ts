@@ -52,7 +52,7 @@ const generateQuestions = (
     const template = subjectTemplates[i % subjectTemplates.length];
     const questionText = `${template} (${questionType.nameAr} - سؤال ${i + 1})`;
     
-    let options = [];
+    let options: Array<{ id: string; text: string; isCorrect: boolean }> = [];
     let correctAnswer = '';
 
     if (questionType.name === 'Multiple Choice') {
