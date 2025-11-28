@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WoodyBackground } from '../components/Shared/WoodyBackground';
 import { Subject, QuestionType } from '../types/question.types';
@@ -40,6 +40,8 @@ const OnlineWaitingPage: React.FC = () => {
   const [joinedPlayers, setJoinedPlayers] = useState<JoinedPlayer[]>([]);
   const [configLoaded, setConfigLoaded] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const playersRef = useRef<JoinedPlayer[]>([]); // Ref to track players independently
+  const hasHadPlayersRef = useRef(false); // Track if we've ever had players
 
   useEffect(() => {
     if (!roomCode) {
@@ -114,9 +116,13 @@ const OnlineWaitingPage: React.FC = () => {
         // CRITICAL: Only update players if config has players AND it's not empty
         // Never overwrite with empty array - always merge or keep existing
         setJoinedPlayers((prev) => {
+          // Update ref
+          playersRef.current = prev;
+          
           if (config.players && Array.isArray(config.players)) {
             if (config.players.length > 0) {
               console.log('🔵 [PLAYER] Config has players, merging:', config.players);
+              hasHadPlayersRef.current = true; // Mark that we've had players
               // Merge: combine existing and new players, avoiding duplicates
               const merged = [...prev];
               config.players.forEach((newPlayer: JoinedPlayer) => {
@@ -129,11 +135,16 @@ const OnlineWaitingPage: React.FC = () => {
                   console.log('🔵 [PLAYER] Added new player to merged list:', newPlayer.name);
                 }
               });
+              playersRef.current = merged; // Update ref
               console.log('🔵 [PLAYER] Final merged players:', merged);
               return merged;
             } else {
-              // Config has empty players array - keep existing players
-              console.log('🔵 [PLAYER] Config has EMPTY players array, KEEPING current players:', prev);
+              // Config has empty players array - NEVER clear if we've had players
+              if (hasHadPlayersRef.current && prev.length > 0) {
+                console.log('🔵 [PLAYER] Config has EMPTY array but we have players - PROTECTING list:', prev);
+                return prev; // Protect existing players
+              }
+              console.log('🔵 [PLAYER] Config empty, no previous players, keeping empty');
               return prev;
             }
           } else {
@@ -165,7 +176,10 @@ const OnlineWaitingPage: React.FC = () => {
             socketId: data.socketId,
           };
           console.log('🔵 [PLAYER] Adding player from player-joined event:', newPlayer);
-          return [...prev, newPlayer];
+          hasHadPlayersRef.current = true; // Mark that we've had players
+          const updated = [...prev, newPlayer];
+          playersRef.current = updated; // Update ref
+          return updated;
         });
       }
     });
